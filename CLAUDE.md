@@ -25,6 +25,7 @@ Google Apps Script project (V8 runtime) bound to a Google Spreadsheet; the web e
 
 - `Code.js` — menu (`onOpen`), modal openers (`openWebEditor`, `openPhotoExport`), `getSchemaAndData()`, Master Mode data access (`getMasterSources`, `getMasterSourceRows`, `getActualPersonnelNames`, `movePersonnel`), `openSpreadsheetSafely()`
 - `RowCrud.js` — row CRUD (`addRowWithData`, `updateRow`, `deleteRow`, `deleteRows`)
+- `RowMerge.js` — pure three-way row merge (`mergeRowChanges`) behind `updateRow`'s lost-update check, unit-tested
 - `ImageProxy.js` — Drive image/PDF/folder proxy (`getImagesDataUrls`, `resolveDriveFileForExport`, `_classifyDriveFile`)
 - `DataFixes.js` — in-place column normalization menu commands (`fixPhoneNumbers`, `fixFullNames`, `_normalizeDatabaseColumn`)
 - `Utils.js` — spreadsheet/Handbook resolution (`getHandbookSheet`, `resolveSpreadsheet`, `getDatabaseSheet`, `getDriveIdFromHandbook`, `handbookCheck`), `*-table` cell codec (`_parseSubTable`/`_encodeSubTable`) and the Trash sheet/row-grouping helpers it uses
