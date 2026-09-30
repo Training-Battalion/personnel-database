@@ -130,6 +130,20 @@
     </div>
   </div>
 
+  <!-- Save conflict overlay -->
+  <div id="save-conflict-overlay" class="overlay" style="display:none">
+    <div id="save-conflict-dialog" class="overlay-dialog">
+      <div id="save-conflict-title" class="overlay-title">Save conflict</div>
+      <p id="save-conflict-msg" class="overlay-text"></p>
+      <div id="save-conflict-list" class="log-list"></div>
+      <div class="dialog-actions">
+        <button id="btn-conflict-cancel" class="btn-secondary btn-dialog-action">Keep Editing</button>
+        <button id="btn-conflict-reload" class="btn-warning btn-dialog-action">Discard Mine</button>
+        <button id="btn-conflict-overwrite" class="btn-danger btn-dialog-action">Overwrite</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Lightbox -->
   <div id="lightbox" style="display:none">
     <img id="lightbox-img" alt="">

@@ -20,15 +20,40 @@ function addRowWithData(values, spreadsheetId) {
  * Writes new values for a single data row back to the "Database" sheet.
  * When spreadsheetId is provided, writes to that remote spreadsheet instead.
  *
+ * When `baseline` (the row as the user loaded it) is given, the write is checked under a
+ * script lock against the sheet's current row via mergeRowChanges(): cells the user did not
+ * change keep any newer value from the sheet, and nothing is written if the same cell was
+ * changed by someone else or the row was deleted/shifted. Without `baseline` it writes blindly.
+ *
  * @param {number} rowIndex - 1-based spreadsheet row number to update.
  * @param {string[]} values - Array of cell values, one per column.
  * @param {string|null} spreadsheetId - Remote spreadsheet ID, or null for local.
- * @returns {boolean} Always true; thrown errors propagate to the client failure handler.
+ * @param {string[]} [baseline] - Row values as loaded by the client, enabling the conflict check.
+ * @returns {{ok: boolean, values: string[], moved?: boolean, conflicts?: Array<{colIndex: number, theirs: string, mine: string}>}}
+ *   On success `values` is the row as written; on conflict it is the sheet's current row.
+ *   Thrown errors propagate to the client failure handler.
  */
-function updateRow(rowIndex, values, spreadsheetId) {
+function updateRow(rowIndex, values, spreadsheetId, baseline) {
   const { sheet } = getDatabaseSheet(spreadsheetId);
-  sheet.getRange(rowIndex, 1, 1, values.length).setValues([values]);
-  return true;
+  if (!baseline) {
+    sheet.getRange(rowIndex, 1, 1, values.length).setValues([values]);
+    return { ok: true, values };
+  }
+  const lock = LockService.getScriptLock();
+  lock.waitLock(ROW_LOCK_TIMEOUT_MS);
+  try {
+    const numCols = Math.max(sheet.getLastColumn(), values.length);
+    const rowExists = rowIndex <= sheet.getLastRow();
+    const current = rowExists ? stringifyRowValues(sheet.getRange(rowIndex, 1, 1, numCols).getValues()[0]) : [];
+    const { moved, conflicts, merged } = mergeRowChanges(baseline, current, values);
+    if (!rowExists || moved || conflicts.length) {
+      return { ok: false, values: current, moved: !rowExists || moved, conflicts };
+    }
+    sheet.getRange(rowIndex, 1, 1, merged.length).setValues([merged]);
+    return { ok: true, values: merged };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**

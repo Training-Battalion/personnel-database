@@ -159,6 +159,9 @@
     });
     document.getElementById('edit-title').addEventListener('click', () => switchEditTab('main'));
     document.getElementById('btn-unsaved-cancel').addEventListener('click', closeUnsavedChangesOverlay);
+    document.getElementById('btn-conflict-cancel').addEventListener('click', closeSaveConflict);
+    document.getElementById('btn-conflict-overwrite').addEventListener('click', overwriteConflict);
+    document.getElementById('btn-conflict-reload').addEventListener('click', reloadConflictRow);
     document.getElementById('btn-unsaved-discard').addEventListener('click', () => {
       closeUnsavedChangesOverlay();
       leaveEditView();

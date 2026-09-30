@@ -4,6 +4,7 @@
 
   let editingRow = null;   // row object open in the edit view
 
+  let saveConflict = null; // { current, newValues } while the save-conflict dialog is open
   let pendingValues = null; // newValues[] staged by saveRow(), consumed by onSaveSuccess()
 
   let isNewRow = false;    // true when the edit view holds a freshly appended row
@@ -405,11 +406,86 @@
         .withFailureHandler(onSaveError)
         .addRowWithData(newValues, targetId);
     } else {
-      google.script.run
-        .withSuccessHandler(onSaveSuccess)
-        .withFailureHandler(onSaveError)
-        .updateRow(editingRow.rowIndex, newValues, editingRow.spreadsheetId ?? null);
+      sendRowUpdate(newValues, editingRow.values.slice());
     }
+  }
+
+  /**
+   * Sends an existing row's update with the baseline the server checks it against.
+   * On a conflict-free save, adopts the values the server actually wrote (they may
+   * include another user's edits to cells this user left alone).
+   * @param {string[]} newValues - Values the user wants to save.
+   * @param {string[]} baseline - The row as last loaded (or as last seen in the sheet).
+   */
+  function sendRowUpdate(newValues, baseline) {
+    google.script.run
+      .withSuccessHandler(result => {
+        if (!result.ok) { onSaveConflict(result, newValues); return; }
+        pendingValues = result.values;
+        onSaveSuccess();
+      })
+      .withFailureHandler(onSaveError)
+      .updateRow(editingRow.rowIndex, newValues, editingRow.spreadsheetId ?? null, baseline);
+  }
+
+  /**
+   * Shows the save-conflict dialog: lists each cell changed by both users, or explains
+   * that the row was deleted/shifted. Nothing was written to the sheet.
+   * @param {{values: string[], moved: boolean, conflicts: Array<{colIndex: number, theirs: string, mine: string}>}} result
+   * @param {string[]} newValues - The values the user tried to save.
+   */
+  function onSaveConflict(result, newValues) {
+    document.getElementById('btn-save').disabled = false;
+    document.getElementById('save-status').textContent = '';
+    const msg = document.getElementById('save-conflict-msg');
+    const list = document.getElementById('save-conflict-list');
+    list.textContent = '';
+    if (result.moved) {
+      msg.textContent = 'This person was deleted, moved or changed by another user. Refresh to see the latest data; your edits were not saved.';
+    } else {
+      msg.textContent = 'Another user changed the same field(s) since you opened this person. Nothing was saved.';
+      result.conflicts.forEach(c => {
+        const line = document.createElement('div');
+        line.textContent = `${schema.columns[c.colIndex].name}: theirs "${c.theirs}" / yours "${c.mine}"`;
+        list.appendChild(line);
+      });
+    }
+    document.getElementById('btn-conflict-overwrite').style.display = result.moved ? 'none' : '';
+    document.getElementById('btn-conflict-reload').style.display = result.moved ? 'none' : '';
+    saveConflict = { current: result.values, newValues };
+    document.getElementById('save-conflict-overlay').style.display = 'flex';
+  }
+
+  /**
+   * Closes the save-conflict dialog and clears its staged data.
+   */
+  function closeSaveConflict() {
+    document.getElementById('save-conflict-overlay').style.display = 'none';
+    saveConflict = null;
+  }
+
+  /**
+   * Conflict dialog "Overwrite with mine": resends the save using the sheet's current
+   * row as the baseline, so the user's values win for every cell they changed.
+   */
+  function overwriteConflict() {
+    const { current, newValues } = saveConflict;
+    closeSaveConflict();
+    pendingValues = newValues;
+    document.getElementById('btn-save').disabled = true;
+    document.getElementById('save-status').textContent = 'Saving…';
+    sendRowUpdate(newValues, current);
+  }
+
+  /**
+   * Conflict dialog "Reload row": drops the user's edits and reopens the edit view
+   * on the sheet's current values.
+   */
+  function reloadConflictRow() {
+    const { current } = saveConflict;
+    closeSaveConflict();
+    editingRow.values = current.slice(0, schema.columns.length);
+    openEditView(editingRow);
   }
 
   /**

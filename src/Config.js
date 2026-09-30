@@ -149,6 +149,14 @@ const IMAGE_FETCH_CONCURRENCY = 3;
 // (local-only) row set has already rendered.
 const MASTER_MODE_FETCH_CONCURRENCY = 3;
 
+// Shown next to a person whose row was skipped by delete/move/export because the row at the
+// client's row number no longer holds them (another user deleted or moved rows meanwhile).
+const STALE_ROW_SKIP_REASON = 'Changed or moved by another user — skipped, refresh and retry';
+
+// How long updateRow() waits for the script lock that serializes conflict-checked
+// row saves, so two users saving at once can't interleave their read-merge-write.
+const ROW_LOCK_TIMEOUT_MS = 10000;
+
 // Persistent IndexedDB image cache — how long an entry is kept before re-fetching from Drive.
 const IMAGE_CACHE_TTL_DAYS = 7;
 
