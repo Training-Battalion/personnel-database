@@ -40,12 +40,14 @@
  * is saved, but the temp spreadsheet is still cleaned up) — a half-built xlsx
  * has no standalone value the way a partial batch of Docs does.
  *
- * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} rowEntries - Rows to export, in the
+ * @param {Array<{rowIndex: number, spreadsheetId: string|null, name?: string}>} rowEntries - Rows to export, in the
  *   exact order they should appear in the sheet (caller orders them — see
  *   sortRowsBySourceOrder() in WebEditor.list.js.html).
  * @param {number[]} visibleColumnIndices - Indices into the local Database sheet's column
  *   schema to include, in order (columns the user has not hidden).
- * @returns {{name: string, url: string}} The saved .xlsx file's name and Drive URL.
+ * @returns {{name: string, url: string, skipped: Array<{name: string, reason: string}>}} The saved .xlsx
+ *   file's name and Drive URL, plus rows left out because another user changed or moved them
+ *   (first column no longer matches the entry's `name`, see rowMatchesName()).
  */
 function exportXLSX(rowEntries, visibleColumnIndices) {
   const localSs = SpreadsheetApp.getActiveSpreadsheet();
@@ -74,6 +76,7 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
   };
 
   const grid = [headerRow];
+  const skipped = [];
   const linkCells = []; // { a1: string, row: number, col: number, formula: string }
   const startTime = Date.now();
 
@@ -85,6 +88,10 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
     if (!sheetData) return;
     const rowValues = sheetData.all[entry.rowIndex - 1];
     if (!rowValues) return;
+    if (!rowMatchesName(rowValues[0], entry.name)) {
+      skipped.push({ name: entry.name ?? '?', reason: STALE_ROW_SKIP_REASON });
+      return;
+    }
     const strValues = stringifyRowValues(rowValues);
     const rowNum = grid.length + 1; // 1-based sheet row this data row will occupy
     const rowCells = colIndices.map((colIdx, cellIdx) => {
@@ -117,7 +124,7 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
 
     const blob = _fetchXlsxExportBlob(tempSs.getId()).setName(fileName);
     const file = exportFolder.createFile(blob);
-    return { name: fileName, url: file.getUrl() };
+    return { name: fileName, url: file.getUrl(), skipped };
   } finally {
     if (tempSs) {
       try {

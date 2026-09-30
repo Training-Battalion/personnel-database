@@ -2,7 +2,7 @@
  * Exports an F-1 document for each given row entry.
  *
  * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} rowEntries
- * @returns {{results: Array<{name: string, url: string}>, remaining: Array<{rowIndex: number, spreadsheetId: string|null}>}}
+ * @returns {{results: Array<{name: string, url: string}>, remaining: Array<{rowIndex: number, spreadsheetId: string|null}>, skipped: Array<{name: string, reason: string}>}}
  */
 function exportF1(rowEntries) {
   return _exportDoc(rowEntries, EXPORT_F1_TEMPLATE_CELL, F1_DOC_PREFIX);
@@ -12,7 +12,7 @@ function exportF1(rowEntries) {
  * Exports a Wanted Card document for each given row entry.
  *
  * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} rowEntries
- * @returns {{results: Array<{name: string, url: string}>, remaining: Array<{rowIndex: number, spreadsheetId: string|null}>}}
+ * @returns {{results: Array<{name: string, url: string}>, remaining: Array<{rowIndex: number, spreadsheetId: string|null}>, skipped: Array<{name: string, reason: string}>}}
  */
 function exportWC(rowEntries) {
   return _exportDoc(rowEntries, EXPORT_WC_TEMPLATE_CELL, WC_DOC_PREFIX);
@@ -71,10 +71,12 @@ function _makeSheetDataLoader(localSs) {
  * Placeholders with no match are left untouched. The marital status line is
  * underlined based on the COL_MARITAL_STATUS value.
  *
- * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} rowEntries
+ * A row whose first column no longer matches the entry's `name` is skipped (see rowMatchesName()).
+ *
+ * @param {Array<{rowIndex: number, spreadsheetId: string|null, name?: string}>} rowEntries
  * @param {string} templateCell - Handbook cell address (e.g. 'A9') holding the Docs template Drive ID.
  * @param {string} docPrefix - Prefix prepended to the first-column value to form the document name.
- * @returns {{results: Array<{name: string, url: string}>, remaining: Array<{rowIndex: number, spreadsheetId: string|null}>}}
+ * @returns {{results: Array<{name: string, url: string}>, remaining: Array<{rowIndex: number, spreadsheetId: string|null}>, skipped: Array<{name: string, reason: string}>}}
  */
 function _exportDoc(rowEntries, templateCell, docPrefix) {
   const localSs = SpreadsheetApp.getActiveSpreadsheet();
@@ -86,6 +88,7 @@ function _exportDoc(rowEntries, templateCell, docPrefix) {
   const getSheetData = _makeSheetDataLoader(localSs);
 
   const results = [];
+  const skipped = [];
   const startTime = Date.now();
   let remaining = [];
 
@@ -95,13 +98,17 @@ function _exportDoc(rowEntries, templateCell, docPrefix) {
       break;
     }
 
-    const { rowIndex, spreadsheetId } = rowEntries[i];
+    const { rowIndex, spreadsheetId, name } = rowEntries[i];
     const sheetData = getSheetData(spreadsheetId ?? null);
     if (!sheetData) continue;
     const { all, columns } = sheetData;
 
     const rowValues = all[rowIndex - 1];
     if (!rowValues) continue;
+    if (!rowMatchesName(rowValues[0], name)) {
+      skipped.push({ name: name ?? '?', reason: STALE_ROW_SKIP_REASON });
+      continue;
+    }
     /** @type {Object.<string, string>} */
     const data = {};
     const strValues = stringifyRowValues(rowValues);
@@ -156,7 +163,7 @@ function _exportDoc(rowEntries, templateCell, docPrefix) {
     results.push({ name: docName, url: copy.getUrl() });
   }
 
-  return { results, remaining };
+  return { results, remaining, skipped };
 }
 
 /**

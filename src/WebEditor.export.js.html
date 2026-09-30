@@ -2,6 +2,7 @@
   // Export overlay: F-1/Wanted Card, XLSX and S-КАДР photo export flows.
   // One of several WebEditor.*.js.html fragments sharing a single global scope; include order is set in WebEditor.html.
 
+  let exportSkipEntries = [];        // { name, reason }[] shown in #export-skip-log: rows the server skipped (stale row, missing photo/ID, copy failure)
   let pendingExportState = null;     // { mode: 'batch'|'xlsx', btnId, entries, total, serverFnName? } staged when confirm dialog is shown
 
   /**
@@ -36,6 +37,8 @@
     document.getElementById('export-msg').textContent = message;
     ul.style.display = 'none';
     ul.innerHTML = '';
+    exportSkipEntries = [];
+    renderExportSkipLog();
     document.getElementById('export-error').style.display = 'none';
     document.getElementById('btn-export-close').style.display = 'none';
     document.getElementById('export-progress-wrap').style.display = 'block';
@@ -112,6 +115,8 @@
         .withSuccessHandler(response => {
           response.results.forEach(r => appendExportLink(ul, r));
           ul.style.display = 'block';
+          exportSkipEntries.push(...response.skipped);
+          renderExportSkipLog();
           doneCount += response.results.length;
           setProgress(Math.round(doneCount / total * 100));
 
@@ -140,8 +145,6 @@
     fire(entries);
   }
 
-  let photoExportSkipEntries = []; // accumulated across discovery + copy phases, in 'photoExport' mode
-
   /**
    * Kicks off the "Export Photos for S-КАДР" flow immediately on dialog open,
    * in 'photoExport' mode (see init()). Shows the shared export overlay in its
@@ -168,7 +171,7 @@
    * @param {{folderId: string, folderUrl: string, eligible: Array<Object>, skipped: Array<{name: string, reason: string}>}} response
    */
   function onPhotoDiscoverySuccess(response) {
-    photoExportSkipEntries = response.skipped.slice();
+    exportSkipEntries = response.skipped.slice();
     if (!response.eligible.length) {
       finishPhotoExport(0, response.folderUrl);
       return;
@@ -197,7 +200,7 @@
         const ul = document.getElementById('export-links');
         response.results.forEach(r => appendExportLink(ul, r));
         if (response.results.length) ul.style.display = 'block';
-        photoExportSkipEntries.push(...response.skipped);
+        exportSkipEntries.push(...response.skipped);
         const newDone = doneCount + response.results.length + response.skipped.length;
 
         if (response.remaining.length > 0) {
@@ -222,20 +225,21 @@
     document.getElementById('export-progress-bar').style.width = '100%';
     document.getElementById('export-msg').innerHTML =
       `Done — ${doneCount} photo${doneCount !== 1 ? 's' : ''} processed. <a href="${folderUrl}" target="_blank">Open folder</a>`;
-    renderPhotoSkipLog();
+    renderExportSkipLog();
     document.getElementById('btn-export-close').style.display = 'inline-block';
   }
 
   /**
-   * Populates #export-skip-log from the accumulated photoExportSkipEntries
-   * (missing photo/ID and duplicate-ID entries from discovery, plus any
-   * per-item failures from the copy phase), or hides it if empty.
+   * Populates #export-skip-log from the accumulated exportSkipEntries
+   * (stale rows skipped by the Docs/XLSX exports; for the photo export, missing
+   * photo/ID and duplicate-ID entries from discovery plus per-item copy failures),
+   * or hides it if empty.
    */
-  function renderPhotoSkipLog() {
+  function renderExportSkipLog() {
     const el = document.getElementById('export-skip-log');
     el.innerHTML = '';
-    if (!photoExportSkipEntries.length) { el.style.display = 'none'; return; }
-    photoExportSkipEntries.forEach(({ name, reason }) => {
+    if (!exportSkipEntries.length) { el.style.display = 'none'; return; }
+    exportSkipEntries.forEach(({ name, reason }) => {
       const div = document.createElement('div');
       div.textContent = `${name}: ${reason}`;
       el.appendChild(div);
@@ -251,7 +255,7 @@
   function onPhotoExportError(err) {
     document.getElementById('export-progress-bar').classList.remove('indeterminate');
     showError('export-error', 'Photo export failed', err);
-    renderPhotoSkipLog();
+    renderExportSkipLog();
     document.getElementById('btn-export-close').style.display = 'inline-block';
   }
 
@@ -302,6 +306,8 @@
         progressBar.style.width = '100%';
         appendExportLink(ul, result);
         ul.style.display = 'block';
+        exportSkipEntries = result.skipped;
+        renderExportSkipLog();
         document.getElementById('export-msg').textContent = 'Exported:';
         btn.disabled = false;
         document.getElementById('btn-export-close').style.display = 'inline-block';
