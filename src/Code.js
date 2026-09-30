@@ -205,7 +205,7 @@ function getActualPersonnelNames() {
  * folder is not found inside it, the row move still succeeds and a note is
  * added to the log.
  *
- * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} rowEntries
+ * @param {Array<{rowIndex: number, spreadsheetId: string|null, name?: string}>} rowEntries
  * @param {string|null} destinationSpreadsheetId
  * @returns {{
  *   log: Array<{name: string, folderNote: string}>,
@@ -248,10 +248,16 @@ function movePersonnel(rowEntries, destinationSpreadsheetId) {
 
     const destNumCols = destSheet.getLastColumn();
 
-    entries.forEach(({ rowIndex }) => {
+    entries.forEach(({ rowIndex, name }) => {
       const srcNumCols = srcSheet.getLastColumn();
       const rowData = srcSheet.getRange(rowIndex, 1, 1, srcNumCols).getValues()[0];
       const fullName = String(rowData[0]).trim();
+
+      if (!rowMatchesName(rowData[0], name)) {
+        log.push({ name: name ?? fullName, folderNote: STALE_ROW_SKIP_REASON });
+        skippedEntries.push({ rowIndex, spreadsheetId });
+        return;
+      }
 
       if (spreadsheetId === destinationSpreadsheetId) {
         log.push({ name: fullName, folderNote: 'Same spreadsheet — skipped' });

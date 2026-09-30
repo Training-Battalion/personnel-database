@@ -42,10 +42,23 @@
   /**
    * Returns getSelectedRows() as rowEntries, ready to send to a server
    * function that takes {rowIndex, spreadsheetId}[] (export/move/delete).
-   * @returns {Array<{rowIndex: number, spreadsheetId: string|null}>}
+   * Each entry carries the person's name (first column) so the server can refuse
+   * to act on a row that another user has since shifted or replaced.
+   * @returns {Array<{rowIndex: number, spreadsheetId: string|null, name: string}>}
    */
   function getSelectedRowEntries() {
-    return getSelectedRows().map(r => ({ rowIndex: r.rowIndex, spreadsheetId: r.spreadsheetId ?? null }));
+    return getSelectedRows().map(r => ({ rowIndex: r.rowIndex, spreadsheetId: r.spreadsheetId ?? null, name: r.values[0] }));
+  }
+
+  /**
+   * Returns the entries the server actually processed, i.e. minus its skippedEntries.
+   * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} entries - Entries that were sent.
+   * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} [skippedEntries] - From the server response.
+   * @returns {Array<{rowIndex: number, spreadsheetId: string|null}>}
+   */
+  function excludeSkippedEntries(entries, skippedEntries) {
+    const skippedKeys = new Set((skippedEntries ?? []).map(e => rowKey(e)));
+    return entries.filter(e => !skippedKeys.has(rowKey(e)));
   }
 
   /**

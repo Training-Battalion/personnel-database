@@ -537,7 +537,7 @@
     google.script.run
       .withSuccessHandler(onDeleteSuccess)
       .withFailureHandler(onDeleteError)
-      .deleteRow(editingRow.rowIndex, editingRow.spreadsheetId ?? null);
+      .deleteRow(editingRow.rowIndex, editingRow.spreadsheetId ?? null, editingRow.values[0]);
   }
 
   /**
@@ -545,7 +545,11 @@
    * adjusts rowIndexes for all subsequent rows (the sheet row numbers shifted up by 1),
    * and returns to the list view.
    */
-  function onDeleteSuccess() {
+  function onDeleteSuccess(result) {
+    if (result.skippedEntries.length) {
+      onDeleteError(new Error('This person was changed, moved or deleted by another user. Refresh to see the latest data.'));
+      return;
+    }
     const deletedIndex = editingRow.rowIndex;
     const deletedSpreadsheetId = editingRow.spreadsheetId ?? null;
     schema.rows = schema.rows.filter(r => r !== editingRow);
@@ -583,9 +587,14 @@
   /**
    * Success handler for deletePersonnelBulk(). Removes deleted rows from schema,
    * adjusts rowIndexes for remaining rows in the same spreadsheet, and re-renders.
-   * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} deletedEntries
+   * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} sentEntries - Entries sent to the server.
+   * @param {{skippedEntries: Array<{rowIndex: number, spreadsheetId: string|null}>}} result
    */
-  function onBulkDeleteSuccess(deletedEntries) {
+  function onBulkDeleteSuccess(sentEntries, result) {
+    const deletedEntries = excludeSkippedEntries(sentEntries, result.skippedEntries);
+    if (result.skippedEntries.length) {
+      alert(`${result.skippedEntries.length} person(s) were not deleted because another user changed or moved them. Refresh to see the latest data.`);
+    }
     const deletedKeys = new Set(deletedEntries.map(e => rowKey(e)));
     schema.rows = schema.rows.filter(r => !deletedKeys.has(rowKey(r)));
     deletedKeys.forEach(k => selectedKeys.delete(k));

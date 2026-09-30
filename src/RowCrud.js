@@ -64,31 +64,40 @@ function updateRow(rowIndex, values, spreadsheetId, baseline) {
  *
  * @param {number} rowIndex - 1-based spreadsheet row number to delete.
  * @param {string|null} spreadsheetId - Remote spreadsheet ID, or null for local.
- * @returns {boolean} Always true; thrown errors propagate to the client failure handler.
+ * @param {string} [name] - Expected first-column value; the row is skipped if it differs.
+ * @returns {{skippedEntries: Array<{rowIndex: number, spreadsheetId: string|null}>}}
  */
-function deleteRow(rowIndex, spreadsheetId) {
-  return deleteRows([{ rowIndex, spreadsheetId }]);
+function deleteRow(rowIndex, spreadsheetId, name) {
+  return deleteRows([{ rowIndex, spreadsheetId, name }]);
 }
 
 /**
  * Moves multiple rows to the Trash sheet (soft delete), processing each spreadsheet's rows
  * in descending rowIndex order to avoid row-shift bugs during sequential deletion.
- * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} rowEntries
- * @returns {boolean} Always true; thrown errors propagate to the client failure handler.
+ * A row whose first column no longer matches the entry's `name` (another user deleted or
+ * moved rows above it) is skipped rather than deleting the wrong person.
+ * @param {Array<{rowIndex: number, spreadsheetId: string|null, name?: string}>} rowEntries
+ * @returns {{skippedEntries: Array<{rowIndex: number, spreadsheetId: string|null}>}}
+ *   Thrown errors propagate to the client failure handler.
  */
 function deleteRows(rowEntries) {
   const groups = groupAndSortBySpreadsheetId(rowEntries);
+  const skippedEntries = [];
   for (const [spreadsheetId, entries] of groups) {
     const { ss, sheet: dbSheet } = getDatabaseSheet(spreadsheetId);
 
     const numCols = dbSheet.getLastColumn();
     const trashSheet = ensureTrashSheetExists(ss, dbSheet, numCols);
-    for (const { rowIndex } of entries) {
+    for (const { rowIndex, name } of entries) {
       const rowData = dbSheet.getRange(rowIndex, 1, 1, numCols).getValues()[0];
+      if (!rowMatchesName(rowData[0], name)) {
+        skippedEntries.push({ rowIndex, spreadsheetId });
+        continue;
+      }
       const trashLastRow = Math.max(trashSheet.getLastRow(), 2);
       trashSheet.getRange(trashLastRow + 1, 1, 1, numCols).setValues([rowData]);
       dbSheet.deleteRow(rowIndex);
     }
   }
-  return true;
+  return { skippedEntries };
 }

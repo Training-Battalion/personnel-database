@@ -82,11 +82,10 @@
    * }} response
    */
   function onMoveSuccess(response) {
-    // Entries the server actually skipped (same spreadsheet as destination, or source
-    // inaccessible) were never deleted — exclude them so they aren't dropped from the
+    // Entries the server actually skipped (same spreadsheet as destination, source
+    // inaccessible, or row changed by another user) were never deleted — exclude them so they aren't dropped from the
     // local cache and don't throw off the rowIndex shift below.
-    const skippedKeys = new Set((response.skippedEntries ?? []).map(e => rowKey(e)));
-    const movedEntries = pendingMoveEntries.filter(e => !skippedKeys.has(rowKey(e)));
+    const movedEntries = excludeSkippedEntries(pendingMoveEntries, response.skippedEntries);
     const movedKeys = new Set(movedEntries.map(e => rowKey(e)));
     schema.rows = schema.rows.filter(r => !movedKeys.has(rowKey(r)));
     movedKeys.forEach(k => selectedKeys.delete(k));

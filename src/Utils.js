@@ -145,8 +145,8 @@ function readMasterModeFromSheet(handbookSheet) {
  * descending rowIndex order so that rows can be deleted sequentially without
  * the deletion of one row shifting the index of rows below it.
  *
- * @param {Array<{rowIndex: number, spreadsheetId: string|null}>} rowEntries
- * @returns {Map<string|null, Array<{rowIndex: number, spreadsheetId: string|null}>>}
+ * @param {Array<{rowIndex: number, spreadsheetId: string|null, name?: string}>} rowEntries
+ * @returns {Map<string|null, Array<{rowIndex: number, spreadsheetId: string|null, name?: string}>>}
  */
 function groupAndSortBySpreadsheetId(rowEntries) {
   const groups = new Map();
