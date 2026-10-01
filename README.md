@@ -185,9 +185,10 @@ The script temporarily swaps the `scriptId` in `.clasp.json` for each target and
 ## Development
 
 ```bash
-npm run check       # typecheck + lint + shell lint + tests, in sequence
+npm run check       # typecheck + lint + format check + shell lint + tests, in sequence
 npm run typecheck   # tsc over src/*.js against @types/google-apps-script (non-strict)
 npm run lint        # ESLint over src/*.js and the client <script> fragments
+npm run format:check # Prettier check over src/*.js, tests/*.js (npm run format to fix)
 npm run lint:sh     # shellcheck + shfmt -d on clasp-push.sh (needs both installed)
 npm test            # node --test unit + contract tests (no dependencies)
 ```
