@@ -1,0 +1,7 @@
+node_modules/
+samples/
+package-lock.json
+# Apps Script scriptlets (<?!= ... ?>) and embedded <script> bodies aren't safe to reformat.
+*.html
+# Markdown prose is hand-wrapped.
+*.md

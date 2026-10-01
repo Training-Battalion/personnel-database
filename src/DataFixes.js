@@ -32,7 +32,7 @@ function _normalizeDatabaseColumn(columnPattern, normalize, noun) {
   const range = sheet.getRange(3, colIndex + 1, numRows, 1);
   let fixedCount = 0;
 
-  const result = range.getValues().map(row => {
+  const result = range.getValues().map((row) => {
     const original = String(row[0]);
     const normalized = normalize(original);
     if (normalized === original) return row;
@@ -51,11 +51,15 @@ function _normalizeDatabaseColumn(columnPattern, normalize, noun) {
  * @returns {void}
  */
 function fixPhoneNumbers() {
-  _normalizeDatabaseColumn(COL_PHONE_NUMBER, cell => {
-    const phone = cell.trim();
-    const fixed = normalizePhoneNumber(phone);
-    return fixed === phone ? cell : fixed;
-  }, 'phone number');
+  _normalizeDatabaseColumn(
+    COL_PHONE_NUMBER,
+    (cell) => {
+      const phone = cell.trim();
+      const fixed = normalizePhoneNumber(phone);
+      return fixed === phone ? cell : fixed;
+    },
+    'phone number',
+  );
 }
 
 /**

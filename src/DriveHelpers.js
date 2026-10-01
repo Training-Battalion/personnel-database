@@ -115,8 +115,10 @@ function getExportFolderSafely(exportFolderId) {
   try {
     return DriveApp.getFolderById(exportFolderId);
   } catch (e) {
-    throw new Error(`Cannot access the export folder (Handbook!${EXPORT_FOLDER_CELL}, Drive ID "${exportFolderId}"). ` +
-      `Check that your Google account has been granted access to this folder. Original error: ${e.message}`);
+    throw new Error(
+      `Cannot access the export folder (Handbook!${EXPORT_FOLDER_CELL}, Drive ID "${exportFolderId}"). ` +
+        `Check that your Google account has been granted access to this folder. Original error: ${e.message}`,
+    );
   }
 }
 
@@ -139,7 +141,5 @@ function parseGidFromUrl(url) {
  * @returns {string}
  */
 function driveViewUrl(isFolder, id) {
-  return isFolder
-    ? 'https://drive.google.com/drive/folders/' + id
-    : 'https://drive.google.com/file/d/' + id + '/view';
+  return isFolder ? 'https://drive.google.com/drive/folders/' + id : 'https://drive.google.com/file/d/' + id + '/view';
 }

@@ -5,16 +5,45 @@ const assert = require('node:assert/strict');
 const { loadServer, plain } = require('./load.js');
 
 const {
-  normalizeFullName, normalizePhoneNumber, extractUnitName, columnLetterToIndex,
-  compareColumnSchemas, extractColumnSchema, findColumnIndex, findKeyByPattern,
-  getFieldByPattern, padRowToColumnCount, formatDateDDMMYYYY, groupAndSortBySpreadsheetId,
-  parseGidFromUrl, UNIT_NAME_SEPARATOR, COL_FULL_NAME, COL_PHONE_NUMBER, COL_DRAFT_DATE,
-} = loadServer(['Config.js', 'Formatting.js', 'DriveHelpers.js', 'SchemaHelpers.js', 'Utils.js'], [
-  'normalizeFullName', 'normalizePhoneNumber', 'extractUnitName', 'columnLetterToIndex',
-  'compareColumnSchemas', 'extractColumnSchema', 'findColumnIndex', 'findKeyByPattern',
-  'getFieldByPattern', 'padRowToColumnCount', 'formatDateDDMMYYYY', 'groupAndSortBySpreadsheetId',
-  'parseGidFromUrl', 'UNIT_NAME_SEPARATOR', 'COL_FULL_NAME', 'COL_PHONE_NUMBER', 'COL_DRAFT_DATE',
-]);
+  normalizeFullName,
+  normalizePhoneNumber,
+  extractUnitName,
+  columnLetterToIndex,
+  compareColumnSchemas,
+  extractColumnSchema,
+  findColumnIndex,
+  findKeyByPattern,
+  getFieldByPattern,
+  padRowToColumnCount,
+  formatDateDDMMYYYY,
+  groupAndSortBySpreadsheetId,
+  parseGidFromUrl,
+  UNIT_NAME_SEPARATOR,
+  COL_FULL_NAME,
+  COL_PHONE_NUMBER,
+  COL_DRAFT_DATE,
+} = loadServer(
+  ['Config.js', 'Formatting.js', 'DriveHelpers.js', 'SchemaHelpers.js', 'Utils.js'],
+  [
+    'normalizeFullName',
+    'normalizePhoneNumber',
+    'extractUnitName',
+    'columnLetterToIndex',
+    'compareColumnSchemas',
+    'extractColumnSchema',
+    'findColumnIndex',
+    'findKeyByPattern',
+    'getFieldByPattern',
+    'padRowToColumnCount',
+    'formatDateDDMMYYYY',
+    'groupAndSortBySpreadsheetId',
+    'parseGidFromUrl',
+    'UNIT_NAME_SEPARATOR',
+    'COL_FULL_NAME',
+    'COL_PHONE_NUMBER',
+    'COL_DRAFT_DATE',
+  ],
+);
 
 describe('normalizeFullName', () => {
   test('uppercases the surname and keeps the rest as-is', () => {
@@ -90,13 +119,23 @@ describe('compareColumnSchemas', () => {
 
 describe('extractColumnSchema', () => {
   test('pairs names with lowercased types', () => {
-    assert.deepEqual(plain(extractColumnSchema([['ПІБ', 'Фото'], ['Text', 'IMAGE']])), [
-      { name: 'ПІБ', type: 'text' }, { name: 'Фото', type: 'image' },
-    ]);
+    assert.deepEqual(
+      plain(
+        extractColumnSchema([
+          ['ПІБ', 'Фото'],
+          ['Text', 'IMAGE'],
+        ]),
+      ),
+      [
+        { name: 'ПІБ', type: 'text' },
+        { name: 'Фото', type: 'image' },
+      ],
+    );
   });
   test('gives an empty type when the type row is short or missing', () => {
     assert.deepEqual(plain(extractColumnSchema([['A', 'B'], ['text']])), [
-      { name: 'A', type: 'text' }, { name: 'B', type: '' },
+      { name: 'A', type: 'text' },
+      { name: 'B', type: '' },
     ]);
     assert.deepEqual(plain(extractColumnSchema([['A']])), [{ name: 'A', type: '' }]);
   });
@@ -162,16 +201,20 @@ describe('groupAndSortBySpreadsheetId', () => {
       { rowIndex: 5, spreadsheetId: 'a' },
     ]);
     assert.deepEqual(plain([...groups.entries()]), [
-      ['a', [{ rowIndex: 7, spreadsheetId: 'a' }, { rowIndex: 5, spreadsheetId: 'a' }, { rowIndex: 3, spreadsheetId: 'a' }]],
+      [
+        'a',
+        [
+          { rowIndex: 7, spreadsheetId: 'a' },
+          { rowIndex: 5, spreadsheetId: 'a' },
+          { rowIndex: 3, spreadsheetId: 'a' },
+        ],
+      ],
       ['b', [{ rowIndex: 9, spreadsheetId: 'b' }]],
     ]);
   });
   test('puts local rows (null or missing spreadsheetId) in one null group', () => {
-    const groups = groupAndSortBySpreadsheetId([
-      { rowIndex: 4, spreadsheetId: null },
-      { rowIndex: 6 },
-    ]);
+    const groups = groupAndSortBySpreadsheetId([{ rowIndex: 4, spreadsheetId: null }, { rowIndex: 6 }]);
     assert.deepEqual(plain([...groups.keys()]), [null]);
-    assert.deepEqual(plain(groups.get(null).map(e => e.rowIndex)), [6, 4]);
+    assert.deepEqual(plain(groups.get(null).map((e) => e.rowIndex)), [6, 4]);
   });
 });

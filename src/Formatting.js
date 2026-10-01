@@ -6,7 +6,7 @@
  * @returns {string[]}
  */
 function stringifyRowValues(row) {
-  return row.map(c => String(c == null ? '' : c));
+  return row.map((c) => String(c == null ? '' : c));
 }
 
 /**

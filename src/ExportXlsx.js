@@ -59,9 +59,9 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
   const localData = getSheetData(null);
   if (!localData) throw new Error('Local "Database" sheet not accessible.');
 
-  const colIndices = visibleColumnIndices.filter(i => Number.isInteger(i) && i >= 0 && i < localData.columns.length);
+  const colIndices = visibleColumnIndices.filter((i) => Number.isInteger(i) && i >= 0 && i < localData.columns.length);
   if (!colIndices.length) throw new Error('No columns selected for export.');
-  const headerRow = colIndices.map(i => localData.columns[i].name);
+  const headerRow = colIndices.map((i) => localData.columns[i].name);
 
   const driveInfoCache = new Map();
   /**
@@ -70,7 +70,7 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
    * @param {string} fileId
    * @returns {ReturnType<typeof resolveDriveFileForExport>}
    */
-  const resolveDriveInfo = fileId => {
+  const resolveDriveInfo = (fileId) => {
     if (!driveInfoCache.has(fileId)) driveInfoCache.set(fileId, resolveDriveFileForExport(fileId));
     return driveInfoCache.get(fileId);
   };
@@ -80,7 +80,7 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
   const linkCells = []; // { a1: string, row: number, col: number, formula: string }
   const startTime = Date.now();
 
-  rowEntries.forEach(entry => {
+  rowEntries.forEach((entry) => {
     if (Date.now() - startTime > EXPORT_TIME_LIMIT_MS) {
       throw new Error(`XLSX export timed out after building ${grid.length - 1} of ${rowEntries.length} rows. Select fewer rows and try again.`);
     }
@@ -117,7 +117,7 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
     range.setNumberFormat('@');
     range.setValues(grid);
     if (linkCells.length) {
-      sheet.getRangeList(linkCells.map(c => c.a1)).setNumberFormat('General');
+      sheet.getRangeList(linkCells.map((c) => c.a1)).setNumberFormat('General');
       linkCells.forEach(({ row, col, formula }) => sheet.getRange(row, col).setFormula(formula));
     }
     SpreadsheetApp.flush();
@@ -152,7 +152,7 @@ function _fetchXlsxExportBlob(spreadsheetId) {
   const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/export?format=xlsx';
   const response = UrlFetchApp.fetch(url, {
     headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
+    muteHttpExceptions: true,
   });
   if (response.getResponseCode() !== 200) {
     throw new Error('Failed to convert spreadsheet to XLSX (HTTP ' + response.getResponseCode() + ').');

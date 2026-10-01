@@ -48,7 +48,7 @@ function columnLetterToIndex(letter) {
  * @returns {number} 0-based column index, or -1 if no header matches.
  */
 function findColumnIndex(headerRow, pattern) {
-  return headerRow.findIndex(h => pattern.test(String(h).trim()));
+  return headerRow.findIndex((h) => pattern.test(String(h).trim()));
 }
 
 /**
@@ -59,7 +59,7 @@ function findColumnIndex(headerRow, pattern) {
  * @returns {string|null} The first matching key, or null if none match.
  */
 function findKeyByPattern(obj, pattern) {
-  return Object.keys(obj).find(key => pattern.test(key)) ?? null;
+  return Object.keys(obj).find((key) => pattern.test(key)) ?? null;
 }
 
 /**
@@ -89,12 +89,11 @@ function compareColumnSchemas(localSchema, remoteSchema) {
   const len = Math.max(localSchema.length, remoteSchema.length);
   const mismatches = [];
   for (let i = 0; i < len; i++) {
-    const local  = localSchema[i]  ?? { name: '', type: '' };
+    const local = localSchema[i] ?? { name: '', type: '' };
     const remote = remoteSchema[i] ?? { name: '', type: '' };
     if (!local.name && !remote.name) continue;
     if (local.name !== remote.name || local.type !== remote.type) {
-      mismatches.push({ colIndex: i, localName: local.name, localType: local.type,
-                        remoteName: remote.name, remoteType: remote.type });
+      mismatches.push({ colIndex: i, localName: local.name, localType: local.type, remoteName: remote.name, remoteType: remote.type });
     }
   }
   return mismatches;

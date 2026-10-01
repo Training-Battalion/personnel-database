@@ -21,12 +21,18 @@ function getDataTypeOptionsMap() {
   /** @type {Object.<string, string[]>} */
   const map = {};
   try {
-    sheet.getRange(HANDBOOK_DATA_TYPES_RANGE).getValues().forEach(row => {
-      const type = String(row[0]).trim().toLowerCase();
-      if (!type) return;
-      const values = row.slice(1).map(v => String(v).trim()).filter(v => v !== '');
-      if (values.length) map[type] = values;
-    });
+    sheet
+      .getRange(HANDBOOK_DATA_TYPES_RANGE)
+      .getValues()
+      .forEach((row) => {
+        const type = String(row[0]).trim().toLowerCase();
+        if (!type) return;
+        const values = row
+          .slice(1)
+          .map((v) => String(v).trim())
+          .filter((v) => v !== '');
+        if (values.length) map[type] = values;
+      });
   } catch (e) {
     // skip if Handbook data-types range is inaccessible
   }
@@ -45,14 +51,17 @@ function getTableColumnsMap() {
   /** @type {Object.<string, {name: string, type: string}[]>} */
   const map = {};
   try {
-    sheet.getRange(HANDBOOK_TABLE_COLUMNS_RANGE).getValues().forEach(row => {
-      const tableType = String(row[0]).trim().toLowerCase();
-      const name = String(row[1]).trim();
-      const colType = String(row[2]).trim().toLowerCase();
-      if (!tableType || !name) return;
-      if (!map[tableType]) map[tableType] = [];
-      map[tableType].push({ name, type: colType });
-    });
+    sheet
+      .getRange(HANDBOOK_TABLE_COLUMNS_RANGE)
+      .getValues()
+      .forEach((row) => {
+        const tableType = String(row[0]).trim().toLowerCase();
+        const name = String(row[1]).trim();
+        const colType = String(row[2]).trim().toLowerCase();
+        if (!tableType || !name) return;
+        if (!map[tableType]) map[tableType] = [];
+        map[tableType].push({ name, type: colType });
+      });
   } catch (e) {
     // skip if Handbook table-columns range is inaccessible
   }
@@ -88,9 +97,7 @@ function handbookCheck() {
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet|null}
  */
 function resolveSpreadsheet(spreadsheetId) {
-  return spreadsheetId
-    ? openSpreadsheetSafely(spreadsheetId)
-    : SpreadsheetApp.getActiveSpreadsheet();
+  return spreadsheetId ? openSpreadsheetSafely(spreadsheetId) : SpreadsheetApp.getActiveSpreadsheet();
 }
 
 /**
@@ -150,12 +157,12 @@ function readMasterModeFromSheet(handbookSheet) {
  */
 function groupAndSortBySpreadsheetId(rowEntries) {
   const groups = new Map();
-  rowEntries.forEach(entry => {
+  rowEntries.forEach((entry) => {
     const key = entry.spreadsheetId ?? null;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(entry);
   });
-  groups.forEach(entries => entries.sort((a, b) => b.rowIndex - a.rowIndex));
+  groups.forEach((entries) => entries.sort((a, b) => b.rowIndex - a.rowIndex));
   return groups;
 }
 
@@ -172,8 +179,7 @@ function ensureTrashSheetExists(ss, dbSheet, numCols) {
   let trashSheet = ss.getSheetByName(SHEET_TRASH);
   if (!trashSheet) {
     trashSheet = ss.insertSheet(SHEET_TRASH);
-    trashSheet.getRange(1, 1, 2, numCols)
-      .setValues(dbSheet.getRange(1, 1, 2, numCols).getValues());
+    trashSheet.getRange(1, 1, 2, numCols).setValues(dbSheet.getRange(1, 1, 2, numCols).getValues());
   }
   return trashSheet;
 }
@@ -189,9 +195,10 @@ function ensureTrashSheetExists(ss, dbSheet, numCols) {
  */
 function _parseSubTable(rawValue) {
   if (!rawValue) return [];
-  return rawValue.split(TABLE_ROW_SEP)
-    .map(row => row.split(TABLE_FIELD_SEP))
-    .filter(fields => fields[0] && fields[0].trim());
+  return rawValue
+    .split(TABLE_ROW_SEP)
+    .map((row) => row.split(TABLE_FIELD_SEP))
+    .filter((fields) => fields[0] && fields[0].trim());
 }
 
 /**
@@ -202,5 +209,5 @@ function _parseSubTable(rawValue) {
  * @returns {string} Pipe-and-newline encoded cell string.
  */
 function _encodeSubTable(rows) {
-  return rows.map(fields => fields.join(TABLE_FIELD_SEP)).join(TABLE_ROW_SEP);
+  return rows.map((fields) => fields.join(TABLE_FIELD_SEP)).join(TABLE_ROW_SEP);
 }

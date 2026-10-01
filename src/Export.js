@@ -28,7 +28,7 @@ function exportWC(rowEntries) {
  */
 function _makeSheetDataLoader(localSs) {
   const sheetCache = new Map();
-  return spreadsheetId => {
+  return (spreadsheetId) => {
     const key = spreadsheetId ?? '';
     if (!sheetCache.has(key)) {
       const ss = spreadsheetId ? openSpreadsheetSafely(spreadsheetId) : localSs;
@@ -112,7 +112,9 @@ function _exportDoc(rowEntries, templateCell, docPrefix) {
     /** @type {Object.<string, string>} */
     const data = {};
     const strValues = stringifyRowValues(rowValues);
-    columns.forEach((col, j) => { data[col.name] = strValues[j]; });
+    columns.forEach((col, j) => {
+      data[col.name] = strValues[j];
+    });
 
     const docName = docPrefix + (data[columns[0].name] || 'Unknown');
     const copy = DriveApp.getFileById(templateId).makeCopy(docName, exportFolder);
@@ -120,7 +122,7 @@ function _exportDoc(rowEntries, templateCell, docPrefix) {
     const body = doc.getBody();
 
     // Pass 1: image column placeholders.
-    columns.forEach(col => {
+    columns.forEach((col) => {
       if (col.type !== 'image') return;
       const placeholder = '{' + col.name + '}';
       const fileId = parseDriveId(data[col.name] || '');
@@ -144,16 +146,14 @@ function _exportDoc(rowEntries, templateCell, docPrefix) {
     // the document, and (for columns whose header matches a correspondence
     // table placeholder, e.g. awardsList) would also consume the placeholder
     // before pass 4 gets a chance to replace it with the computed value.
-    columns.forEach(col => {
+    columns.forEach((col) => {
       if (col.type === 'image' || isTableType(col)) return;
       body.replaceText(_escapeRegex('{' + col.name + '}'), _escapeReplacement(data[col.name] || ''));
     });
 
     // Pass 4: correspondence table mappings (source column aliases and computed values).
     mappings.forEach(({ placeholder, sourceCol, computedKey }) => {
-      const value = sourceCol
-        ? (data[sourceCol] || '')
-        : _computeValue(computedKey, data);
+      const value = sourceCol ? data[sourceCol] || '' : _computeValue(computedKey, data);
       body.replaceText(_escapeRegex('{' + placeholder + '}'), _escapeReplacement(value));
     });
 
@@ -184,7 +184,7 @@ function _loadCorrespondenceTable(handbookSheet) {
     mappings.push({
       placeholder,
       sourceCol: String(rows[i][1]).trim(),
-      computedKey: String(rows[i][2]).trim()
+      computedKey: String(rows[i][2]).trim(),
     });
   }
   return mappings;
@@ -299,7 +299,7 @@ function _getExportImageBlob(fileId) {
       const resized = link.replace(/=s\d+/, '=s' + EXPORT_IMAGE_THUMBNAIL_SIZE);
       const response = UrlFetchApp.fetch(resized, {
         headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-        muteHttpExceptions: true
+        muteHttpExceptions: true,
       });
       if (response.getResponseCode() === 200) {
         const blob = response.getBlob();
@@ -330,7 +330,7 @@ function _replacePlaceholderWithImage(body, placeholder, blob) {
   const img = para.appendInlineImage(blob);
   const h = img.getHeight();
   if (h > IMAGE_MAX_HEIGHT) {
-    img.setWidth(Math.round(img.getWidth() * IMAGE_MAX_HEIGHT / h));
+    img.setWidth(Math.round((img.getWidth() * IMAGE_MAX_HEIGHT) / h));
     img.setHeight(IMAGE_MAX_HEIGHT);
   }
 }

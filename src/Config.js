@@ -63,7 +63,7 @@ const DOCUMENT_PHOTO_TAB_NAME = 'Фото документи';
 // Export / document settings
 const EXPORT_TIME_LIMIT_MS = 5 * 60 * 1000; // 5 min — 1 min safety margin before GAS 6-min hard limit
 const EXPORT_CONFIRM_THRESHOLD = 10; // show confirmation dialog when exporting more than this many docs
-const EXPORT_SECONDS_PER_DOC = 6;    // rough time estimate shown in the confirmation dialog (5 docs ≈ 30 s)
+const EXPORT_SECONDS_PER_DOC = 6; // rough time estimate shown in the confirmation dialog (5 docs ≈ 30 s)
 const F1_DOC_PREFIX = 'Ф-1 ';
 const WC_DOC_PREFIX = 'РК ';
 const DEFAULT_UNIT_NUMBER = '3102';
@@ -161,7 +161,7 @@ const ROW_LOCK_TIMEOUT_MS = 10000;
 const IMAGE_CACHE_TTL_DAYS = 7;
 
 // Regex patterns shared between server-side phone normalization and export logic.
-const PHONE_REGEX_9DIGIT  = /^\d{9}$/;
+const PHONE_REGEX_9DIGIT = /^\d{9}$/;
 const PHONE_REGEX_COUNTRY = /^38\d{10}$/;
 
 // Full-name normalization — matches runs of whitespace (incl. newlines) for collapsing to a single space.

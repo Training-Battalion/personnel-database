@@ -8,14 +8,35 @@ const assert = require('node:assert/strict');
 const { loadServer, plain } = require('./load.js');
 
 const {
-  _pluralizeUk, _calendarDuration, _computeTotalServiceLength, _computeContractSignDate,
-  _computeValue, _computeChildrenNamesBirthDates, _parseSubTable, _encodeSubTable,
-  _escapeRegex, _escapeReplacement, _escapeFormulaString, _colIndexToA1Column,
-} = loadServer(['Config.js', 'Formatting.js', 'DriveHelpers.js', 'SchemaHelpers.js', 'Utils.js', 'ExportValues.js', 'ExportXlsx.js', 'Export.js'], [
-  '_pluralizeUk', '_calendarDuration', '_computeTotalServiceLength', '_computeContractSignDate',
-  '_computeValue', '_computeChildrenNamesBirthDates', '_parseSubTable', '_encodeSubTable',
-  '_escapeRegex', '_escapeReplacement', '_escapeFormulaString', '_colIndexToA1Column',
-]);
+  _pluralizeUk,
+  _calendarDuration,
+  _computeTotalServiceLength,
+  _computeContractSignDate,
+  _computeValue,
+  _computeChildrenNamesBirthDates,
+  _parseSubTable,
+  _encodeSubTable,
+  _escapeRegex,
+  _escapeReplacement,
+  _escapeFormulaString,
+  _colIndexToA1Column,
+} = loadServer(
+  ['Config.js', 'Formatting.js', 'DriveHelpers.js', 'SchemaHelpers.js', 'Utils.js', 'ExportValues.js', 'ExportXlsx.js', 'Export.js'],
+  [
+    '_pluralizeUk',
+    '_calendarDuration',
+    '_computeTotalServiceLength',
+    '_computeContractSignDate',
+    '_computeValue',
+    '_computeChildrenNamesBirthDates',
+    '_parseSubTable',
+    '_encodeSubTable',
+    '_escapeRegex',
+    '_escapeReplacement',
+    '_escapeFormulaString',
+    '_colIndexToA1Column',
+  ],
+);
 
 const ymd = (y, m, d) => new Date(y, m - 1, d);
 
@@ -65,8 +86,7 @@ describe('_calendarDuration', () => {
       const start = new Date(2023, 0, 1 + s);
       for (let e = 0; e < 800; e += 7) {
         const { years, months, days } = _calendarDuration(start, new Date(start.getFullYear(), start.getMonth(), start.getDate() + e));
-        assert.ok(years >= 0 && months >= 0 && months <= 11 && days >= 0 && days <= 30,
-          `${start.toDateString()} + ${e}d -> ${years}y ${months}m ${days}d`);
+        assert.ok(years >= 0 && months >= 0 && months <= 11 && days >= 0 && days <= 30, `${start.toDateString()} + ${e}d -> ${years}y ${months}m ${days}d`);
       }
     }
   });
@@ -129,7 +149,10 @@ describe('_computeValue and relatives lookups', () => {
 
 describe('_parseSubTable / _encodeSubTable', () => {
   test('parses rows and fields', () => {
-    assert.deepEqual(plain(_parseSubTable('a | b\nc | d')), [['a', 'b'], ['c', 'd']]);
+    assert.deepEqual(plain(_parseSubTable('a | b\nc | d')), [
+      ['a', 'b'],
+      ['c', 'd'],
+    ]);
   });
   test('returns [] for empty input and drops rows with a blank first field', () => {
     assert.deepEqual(plain(_parseSubTable('')), []);

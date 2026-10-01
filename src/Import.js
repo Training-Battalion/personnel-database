@@ -25,9 +25,7 @@ function importAwards() {
     return;
   }
 
-  const importSheet = gid !== null
-    ? importSs.getSheets().find(s => s.getSheetId() === gid)
-    : importSs.getSheets()[0];
+  const importSheet = gid !== null ? importSs.getSheets().find((s) => s.getSheetId() === gid) : importSs.getSheets()[0];
   if (!importSheet) {
     ui.alert('Could not find the specified sheet tab.');
     return;
@@ -75,9 +73,7 @@ function _groupAwardsById(importData) {
     // not strings — String(date) would yield "Wed Dec 31 2025 10:00:00
     // GMT+0200 (...)" instead of the DD.MM.YYYY format stored everywhere else.
     const orderDateRaw = row[orderDateColIndex];
-    const orderDate = orderDateRaw instanceof Date
-      ? formatDateDDMMYYYY(orderDateRaw)
-      : String(orderDateRaw || '').trim();
+    const orderDate = orderDateRaw instanceof Date ? formatDateDDMMYYYY(orderDateRaw) : String(orderDateRaw || '').trim();
 
     if (!map[id]) map[id] = [];
     map[id].push([capitalizedName, orderNumber, orderDate]);
@@ -94,7 +90,7 @@ function _groupAwardsById(importData) {
 function _collectAwardTargetSources() {
   const sources = [];
   _addAwardSource(sources, null, SpreadsheetApp.getActiveSpreadsheet());
-  getMasterSources().forEach(id => {
+  getMasterSources().forEach((id) => {
     const remoteSs = openSpreadsheetSafely(id);
     if (remoteSs) _addAwardSource(sources, id, remoteSs);
   });
@@ -149,9 +145,9 @@ function _applyAwards(awardsByPersonId, sources) {
   const notFound = [];
   const fullLog = [];
 
-  Object.keys(awardsByPersonId).forEach(id => {
+  Object.keys(awardsByPersonId).forEach((id) => {
     const newEntries = awardsByPersonId[id];
-    const source = sources.find(s => Object.prototype.hasOwnProperty.call(s.rowIndexById, id));
+    const source = sources.find((s) => Object.prototype.hasOwnProperty.call(s.rowIndexById, id));
     if (!source) {
       notFound.push(id);
       fullLog.push(`${id}: not found in any source, skipped`);
@@ -160,10 +156,10 @@ function _applyAwards(awardsByPersonId, sources) {
 
     const rowIndex = source.rowIndexById[id];
     const existingRows = _parseSubTable(source.values[rowIndex][source.awardsColIndex]);
-    const existingKeys = new Set(existingRows.map(r => r.join('')));
+    const existingKeys = new Set(existingRows.map((r) => r.join('')));
 
     let addedForPerson = 0;
-    newEntries.forEach(entry => {
+    newEntries.forEach((entry) => {
       const key = entry.join('');
       if (existingKeys.has(key)) {
         entriesDuplicate++;

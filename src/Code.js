@@ -8,9 +8,11 @@ function getMasterSources() {
   const sheet = getHandbookSheet();
   if (!sheet) return [];
   try {
-    return sheet.getRange(MASTER_MODE_SOURCES_RANGE).getValues()
-      .map(r => parseDriveId(String(r[0]).trim()))
-      .filter(v => v !== '');
+    return sheet
+      .getRange(MASTER_MODE_SOURCES_RANGE)
+      .getValues()
+      .map((r) => parseDriveId(String(r[0]).trim()))
+      .filter((v) => v !== '');
   } catch (e) {
     return [];
   }
@@ -31,14 +33,18 @@ function getMasterMode() {
  *
  * @returns {{ text: number, image: number, table: number }}
  */
-function getColumnMinWidths() { return COLUMN_MIN_WIDTHS; }
+function getColumnMinWidths() {
+  return COLUMN_MIN_WIDTHS;
+}
 
 /**
  * Returns the column maximum width config for use in HTML template scriptlets.
  *
  * @returns {{ image: number }}
  */
-function getColumnMaxWidths() { return COLUMN_MAX_WIDTHS; }
+function getColumnMaxWidths() {
+  return COLUMN_MAX_WIDTHS;
+}
 
 /**
  * Simple trigger that runs when the spreadsheet is opened.
@@ -55,10 +61,7 @@ function onOpen() {
     .addItem('Fix phone numbers', 'fixPhoneNumbers')
     .addItem('Fix full names', 'fixFullNames');
   if (getMasterMode()) {
-    menu
-      .addSeparator()
-      .addItem('Export photos for S-КАДР', 'openPhotoExport')
-      .addItem('Import awards from S-КАДР', 'importAwards');
+    menu.addSeparator().addItem('Export photos for S-КАДР', 'openPhotoExport').addItem('Import awards from S-КАДР', 'importAwards');
   }
   menu.addToUi();
 }
@@ -135,7 +138,7 @@ function getMasterSourceRows(spreadsheetId) {
     const rows = [];
     for (let i = 2; i < remoteAll.length; i++) {
       const values = stringifyRowValues(remoteAll[i]);
-      if (values.every(v => v === '')) continue;
+      if (values.every((v) => v === '')) continue;
       rows.push({ rowIndex: i + 1, values, spreadsheetId });
     }
     return { id: spreadsheetId, name, rows, columnMismatches: null };
@@ -176,15 +179,18 @@ function openSpreadsheetSafely(id) {
 function getActualPersonnelNames() {
   const handbook = getHandbookSheet();
   if (!handbook) return null;
-  const link  = String(handbook.getRange(ACTUAL_PERSONNEL_SPREADSHEET_CELL).getValue()).trim();
+  const link = String(handbook.getRange(ACTUAL_PERSONNEL_SPREADSHEET_CELL).getValue()).trim();
   const range = String(handbook.getRange(ACTUAL_PERSONNEL_RANGE_CELL).getValue()).trim();
   const id = parseDriveId(link);
   if (!id || !range) return null;
   const ss = openSpreadsheetSafely(id);
   if (!ss) return null;
   try {
-    return ss.getRange(range).getValues()
-      .map(r => String(r[0]).trim()).filter(v => v !== '');
+    return ss
+      .getRange(range)
+      .getValues()
+      .map((r) => String(r[0]).trim())
+      .filter((v) => v !== '');
   } catch (e) {
     return null;
   }
@@ -352,7 +358,7 @@ function getSchemaAndData() {
   const rows = [];
   for (let i = 2; i < all.length; i++) {
     const values = stringifyRowValues(all[i]);
-    if (values.every(v => v === '')) continue;
+    if (values.every((v) => v === '')) continue;
     rows.push({ rowIndex: i + 1, values });
   }
 
@@ -361,9 +367,9 @@ function getSchemaAndData() {
 
   const dataTypeOptionsMap = getDataTypeOptionsMap();
   const tableColumnsMap = getTableColumnsMap();
-  columns.forEach(col => {
+  columns.forEach((col) => {
     if (isTableType(col)) {
-      col.tableHeaders = (tableColumnsMap[col.type] || []).map(sub => {
+      col.tableHeaders = (tableColumnsMap[col.type] || []).map((sub) => {
         const subCol = { name: sub.name, type: sub.type };
         if (dataTypeOptionsMap[sub.type]) subCol.dropdownOptions = dataTypeOptionsMap[sub.type];
         return subCol;
@@ -374,14 +380,21 @@ function getSchemaAndData() {
   });
 
   const masterSources = masterMode ? [{ id: null, name: ss.getName() }] : undefined;
-  return { columns, rows, masterMode, masterSourceIds, masterSources,
-           actualPersonnelNames: getActualPersonnelNames(),
-           filterDebounceMs: FILTER_DEBOUNCE_MS,
-           imageFetchBatchSize: IMAGE_FETCH_BATCH_SIZE, imageFetchConcurrency: IMAGE_FETCH_CONCURRENCY,
-           masterModeFetchConcurrency: MASTER_MODE_FETCH_CONCURRENCY,
-           imageCacheTtlDays: IMAGE_CACHE_TTL_DAYS,
-           exportConfirmThreshold: EXPORT_CONFIRM_THRESHOLD,
-           exportSecondsPerDoc: EXPORT_SECONDS_PER_DOC,
-           xlsxExportSecondsPerRow: XLSX_EXPORT_SECONDS_PER_ROW,
-           documentPhotoTabName: DOCUMENT_PHOTO_TAB_NAME };
+  return {
+    columns,
+    rows,
+    masterMode,
+    masterSourceIds,
+    masterSources,
+    actualPersonnelNames: getActualPersonnelNames(),
+    filterDebounceMs: FILTER_DEBOUNCE_MS,
+    imageFetchBatchSize: IMAGE_FETCH_BATCH_SIZE,
+    imageFetchConcurrency: IMAGE_FETCH_CONCURRENCY,
+    masterModeFetchConcurrency: MASTER_MODE_FETCH_CONCURRENCY,
+    imageCacheTtlDays: IMAGE_CACHE_TTL_DAYS,
+    exportConfirmThreshold: EXPORT_CONFIRM_THRESHOLD,
+    exportSecondsPerDoc: EXPORT_SECONDS_PER_DOC,
+    xlsxExportSecondsPerRow: XLSX_EXPORT_SECONDS_PER_ROW,
+    documentPhotoTabName: DOCUMENT_PHOTO_TAB_NAME,
+  };
 }

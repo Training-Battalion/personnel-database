@@ -33,7 +33,7 @@ function _classifyDriveFile(file, fileId) {
 function getImagesDataUrls(fileIds) {
   /** @type {Object.<string, {type: string, dataUrl?: string, viewUrl?: string}>} */
   const result = {};
-  fileIds.forEach(fileId => {
+  fileIds.forEach((fileId) => {
     if (!fileId) return;
     try {
       const file = DriveApp.getFileById(fileId);

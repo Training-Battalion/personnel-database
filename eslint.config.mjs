@@ -80,7 +80,8 @@ export default [
       'no-unused-vars': 'off',
       // Opening a spreadsheet the user can't access fails the whole execution even
       // when caught; openSpreadsheetSafely() (Code.js) is the only allowed caller.
-      'no-restricted-properties': ['error',
+      'no-restricted-properties': [
+        'error',
         { object: 'SpreadsheetApp', property: 'openById', message: 'Use openSpreadsheetSafely(id).' },
         { object: 'SpreadsheetApp', property: 'openByUrl', message: 'Use openSpreadsheetSafely() with parseDriveId(url).' },
       ],

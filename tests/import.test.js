@@ -10,25 +10,24 @@ const assert = require('node:assert/strict');
 const { loadServer, plain } = require('./load.js');
 
 const {
-  _groupAwardsById, _buildImportSummary, AWARDS_IMPORT_NOT_FOUND_DISPLAY_LIMIT,
+  _groupAwardsById,
+  _buildImportSummary,
+  AWARDS_IMPORT_NOT_FOUND_DISPLAY_LIMIT,
   // _groupAwardsById does `instanceof Date` on a cell value, so a Date built with
   // Node's own Date constructor (a different realm than the vm context) would
   // never match — the sheet's own Date constructor makes an instance it recognizes.
   Date: ContextDate,
-} = loadServer(['Config.js', 'Formatting.js', 'SchemaHelpers.js', 'Utils.js', 'Import.js'], [
-  '_groupAwardsById', '_buildImportSummary', 'AWARDS_IMPORT_NOT_FOUND_DISPLAY_LIMIT', 'Date',
-]);
+} = loadServer(
+  ['Config.js', 'Formatting.js', 'SchemaHelpers.js', 'Utils.js', 'Import.js'],
+  ['_groupAwardsById', '_buildImportSummary', 'AWARDS_IMPORT_NOT_FOUND_DISPLAY_LIMIT', 'Date'],
+);
 
 // Columns per Config.js: A=id, F=name, G=order number, H=order date. Row 1 is the header.
 const row = (id, name, orderNumber, orderDate) => [id, '', '', '', '', name, orderNumber, orderDate];
 
 describe('_groupAwardsById', () => {
   test('groups multiple award rows under the same ID', () => {
-    const data = [
-      ['header'],
-      row('123', 'орден', '45/2024', '01.02.2024'),
-      row('123', 'медаль', '46/2024', '02.02.2024'),
-    ];
+    const data = [['header'], row('123', 'орден', '45/2024', '01.02.2024'), row('123', 'медаль', '46/2024', '02.02.2024')];
     assert.deepEqual(plain(_groupAwardsById(data)), {
       123: [
         ['Орден', '45', '01.02.2024'],
@@ -38,12 +37,7 @@ describe('_groupAwardsById', () => {
   });
 
   test('skips rows with no ID or no award name', () => {
-    const data = [
-      ['header'],
-      row('', 'орден', '1', ''),
-      row('123', '', '1', ''),
-      row('123', 'орден', '1', ''),
-    ];
+    const data = [['header'], row('', 'орден', '1', ''), row('123', '', '1', ''), row('123', 'орден', '1', '')];
     assert.deepEqual(plain(_groupAwardsById(data)), { 123: [['Орден', '1', '']] });
   });
 
@@ -58,11 +52,7 @@ describe('_groupAwardsById', () => {
   });
 
   test('formats a real Date cell as DD.MM.YYYY, passes a string cell through trimmed', () => {
-    const data = [
-      ['header'],
-      row('1', 'x', '', new ContextDate(2024, 1, 3)),
-      row('2', 'x', '', '  04.02.2024  '),
-    ];
+    const data = [['header'], row('1', 'x', '', new ContextDate(2024, 1, 3)), row('2', 'x', '', '  04.02.2024  ')];
     const grouped = _groupAwardsById(data);
     assert.equal(grouped['1'][0][2], '03.02.2024');
     assert.equal(grouped['2'][0][2], '04.02.2024');

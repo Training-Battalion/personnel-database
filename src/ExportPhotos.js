@@ -29,7 +29,7 @@ function startPhotoExport() {
   if (!actualNames) {
     throw new Error('Actual Personnel list (Handbook!A6/A7) is not configured or not accessible — cannot determine who to export.');
   }
-  const actualSet = new Set(actualNames.map(n => n.trim().toUpperCase()));
+  const actualSet = new Set(actualNames.map((n) => n.trim().toUpperCase()));
 
   const sourceIds = [null, ...getMasterSources()]; // null = local Database; fixed, deterministic order
   const getSheetData = _makeSheetDataLoader(localSs);
@@ -49,10 +49,12 @@ function startPhotoExport() {
 
     for (let i = 2; i < all.length; i++) {
       const strValues = stringifyRowValues(all[i]);
-      if (strValues.every(v => v === '')) continue;
+      if (strValues.every((v) => v === '')) continue;
       /** @type {Object.<string, string>} */
       const data = {};
-      columns.forEach((col, j) => { data[col.name] = strValues[j]; });
+      columns.forEach((col, j) => {
+        data[col.name] = strValues[j];
+      });
 
       const fullName = (data[columns[0].name] || '').trim();
       if (!fullName || !actualSet.has(fullName.toUpperCase())) continue;
@@ -61,8 +63,7 @@ function startPhotoExport() {
       const cardId = getFieldByPattern(data, COL_CARD_ID).trim();
 
       if (!photoRaw || !cardId) {
-        const reason = !photoRaw && !cardId ? 'Missing photo and S-КАДР ID'
-                     : !photoRaw ? 'Missing photo' : 'Missing S-КАДР ID';
+        const reason = !photoRaw && !cardId ? 'Missing photo and S-КАДР ID' : !photoRaw ? 'Missing photo' : 'Missing S-КАДР ID';
         skipped.push({ name: fullName, reason });
         continue;
       }

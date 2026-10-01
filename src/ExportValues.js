@@ -60,7 +60,7 @@ function _getAwardsRows(data) {
  * @returns {string[][]}
  */
 function _filterChildrenRows(rows) {
-  return rows.filter(fields => (fields[0] || '').trim().toLowerCase().startsWith('дитина'));
+  return rows.filter((fields) => (fields[0] || '').trim().toLowerCase().startsWith('дитина'));
 }
 
 /**
@@ -109,8 +109,9 @@ function _calendarDuration(start, end) {
 
   // UTC arithmetic keeps a DST change between the two dates from skewing the day count.
   const msPerDay = 24 * 60 * 60 * 1000;
-  const days = Math.round((Date.UTC(end.getFullYear(), end.getMonth(), end.getDate())
-    - Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate())) / msPerDay);
+  const days = Math.round(
+    (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) - Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate())) / msPerDay,
+  );
 
   return { years: Math.floor(totalMonths / 12), months: totalMonths % 12, days };
 }
@@ -180,8 +181,8 @@ function _computeCurrentPosition(data) {
  */
 function _computeChildrenPhoneNumbers(data) {
   return _filterChildrenRows(_getRelativesRows(data))
-    .map(fields => (fields[3] || '').trim())
-    .filter(phone => phone)
+    .map((fields) => (fields[3] || '').trim())
+    .filter((phone) => phone)
     .join(', ');
 }
 
@@ -197,11 +198,13 @@ function _computeChildrenPhoneNumbers(data) {
 function _computeChildrenNamesBirthDates(data) {
   const children = _filterChildrenRows(_getRelativesRows(data));
   if (!children.length) return '';
-  return children.map((fields, i) => {
-    const name = (fields[1] || '').trim();
-    const birthDate = (fields[4] || '').trim();
-    return `${i + 1} дитина: ${name}${birthDate ? ` ${birthDate}` : ''}`;
-  }).join('\n');
+  return children
+    .map((fields, i) => {
+      const name = (fields[1] || '').trim();
+      const birthDate = (fields[4] || '').trim();
+      return `${i + 1} дитина: ${name}${birthDate ? ` ${birthDate}` : ''}`;
+    })
+    .join('\n');
 }
 
 /**
@@ -215,8 +218,8 @@ function _computeChildrenNamesBirthDates(data) {
 function _computeRelativesWithPhoneNumbers(data) {
   const rows = _getRelativesRows(data);
   return rows
-    .filter(fields => (fields[3] || '').trim())
-    .map(fields => [fields[0], fields[1], fields[2], fields[3]].map(f => (f || '').trim()).join(', '))
+    .filter((fields) => (fields[3] || '').trim())
+    .map((fields) => [fields[0], fields[1], fields[2], fields[3]].map((f) => (f || '').trim()).join(', '))
     .join('; ');
 }
 
@@ -232,15 +235,17 @@ function _computeRelativesWithPhoneNumbers(data) {
  *                   or empty string if no awards found.
  */
 function _computeAwardsList(data) {
-  return _getAwardsRows(data).map(fields => {
-    const name = (fields[0] || '').trim();
-    const number = (fields[1] || '').trim();
-    const date = (fields[2] || '').trim();
-    let text = name.charAt(0).toUpperCase() + name.slice(1);
-    if (number) text += ` №${number}`;
-    if (date) text += ` від ${date}`;
-    return text;
-  }).join('; ');
+  return _getAwardsRows(data)
+    .map((fields) => {
+      const name = (fields[0] || '').trim();
+      const number = (fields[1] || '').trim();
+      const date = (fields[2] || '').trim();
+      let text = name.charAt(0).toUpperCase() + name.slice(1);
+      if (number) text += ` №${number}`;
+      if (date) text += ` від ${date}`;
+      return text;
+    })
+    .join('; ');
 }
 
 /**
@@ -255,7 +260,7 @@ function _computeAwardsList(data) {
  */
 function _findRelativeField(data, relationType, fieldIndex) {
   const rows = _getRelativesRows(data);
-  const row = rows.find(fields => (fields[0] || '').trim().toLowerCase() === relationType.toLowerCase());
+  const row = rows.find((fields) => (fields[0] || '').trim().toLowerCase() === relationType.toLowerCase());
   return row ? (row[fieldIndex] || '').trim() : '';
 }
 
