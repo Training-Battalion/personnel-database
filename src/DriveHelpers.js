@@ -130,3 +130,16 @@ function parseGidFromUrl(url) {
   const m = GID_REGEX.exec(String(url));
   return m ? Number(m[1]) : null;
 }
+
+/**
+ * Builds the Drive "view" URL for a file or folder.
+ *
+ * @param {boolean} isFolder - True for a folder ID, false for a file ID.
+ * @param {string} id - Drive file or folder ID.
+ * @returns {string}
+ */
+function driveViewUrl(isFolder, id) {
+  return isFolder
+    ? 'https://drive.google.com/drive/folders/' + id
+    : 'https://drive.google.com/file/d/' + id + '/view';
+}

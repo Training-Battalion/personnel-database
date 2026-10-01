@@ -145,7 +145,7 @@ function _exportDoc(rowEntries, templateCell, docPrefix) {
     // table placeholder, e.g. awardsList) would also consume the placeholder
     // before pass 4 gets a chance to replace it with the computed value.
     columns.forEach(col => {
-      if (col.type === 'image' || col.type.endsWith('-table')) return;
+      if (col.type === 'image' || isTableType(col)) return;
       body.replaceText(_escapeRegex('{' + col.name + '}'), _escapeReplacement(data[col.name] || ''));
     });
 

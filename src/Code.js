@@ -362,7 +362,7 @@ function getSchemaAndData() {
   const dataTypeOptionsMap = getDataTypeOptionsMap();
   const tableColumnsMap = getTableColumnsMap();
   columns.forEach(col => {
-    if (col.type.endsWith('-table')) {
+    if (isTableType(col)) {
       col.tableHeaders = (tableColumnsMap[col.type] || []).map(sub => {
         const subCol = { name: sub.name, type: sub.type };
         if (dataTypeOptionsMap[sub.type]) subCol.dropdownOptions = dataTypeOptionsMap[sub.type];

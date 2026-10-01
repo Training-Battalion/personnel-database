@@ -99,3 +99,14 @@ function compareColumnSchemas(localSchema, remoteSchema) {
   }
   return mismatches;
 }
+
+/**
+ * Whether a schema column holds a `*-table` sub-table (type ends with `-table`).
+ * Client counterpart: `isTableType()` in WebEditor.tables.js.html.
+ *
+ * @param {{type: string}} col - Schema column.
+ * @returns {boolean}
+ */
+function isTableType(col) {
+  return col.type.endsWith('-table');
+}

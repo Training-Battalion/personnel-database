@@ -177,7 +177,7 @@ function _fetchXlsxExportBlob(spreadsheetId) {
  * @returns {string|null} An `=HYPERLINK("url","display")` formula, or null.
  */
 function _buildXlsxLinkCell(col, raw, resolveDriveInfo) {
-  if (!raw || col.type.endsWith('-table')) return null;
+  if (!raw || isTableType(col)) return null;
   let fileId = null;
   if (col.type === 'image') {
     fileId = parseDriveId(raw);

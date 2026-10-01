@@ -12,12 +12,12 @@
 function _classifyDriveFile(file, fileId) {
   const mimeType = file.getMimeType();
   if (mimeType === 'application/pdf') {
-    return { type: 'pdf', viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view', mimeType };
+    return { type: 'pdf', viewUrl: driveViewUrl(false, fileId), mimeType };
   }
   if (mimeType === 'application/vnd.google-apps.folder') {
-    return { type: 'folder', viewUrl: 'https://drive.google.com/drive/folders/' + fileId, mimeType };
+    return { type: 'folder', viewUrl: driveViewUrl(true, fileId), mimeType };
   }
-  return { type: 'image', viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view', mimeType };
+  return { type: 'image', viewUrl: driveViewUrl(false, fileId), mimeType };
 }
 
 /**
