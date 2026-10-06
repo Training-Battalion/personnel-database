@@ -44,6 +44,7 @@ All tuneable constants live in `src/Config.js`. Back to the [README](../README.m
 | `IMAGE_FETCH_CONCURRENCY` | `3` | Number of image-fetch batches running in parallel; raising it speeds up large lists but risks the Apps Script 30-concurrent-execution limit |
 | `MASTER_MODE_FETCH_CONCURRENCY` | `3` | Number of remote Master Mode source spreadsheets fetched in parallel after the initial local-only row set has rendered |
 | `IMAGE_CACHE_TTL_DAYS` | `7` | How many days a cached image entry survives in IndexedDB before being re-fetched |
+| `IMAGE_CACHE_MAX_ENTRIES` | `1000` | Most image entries kept in IndexedDB; the oldest beyond this are deleted each time the editor opens |
 | `DRIVE_URL_REGEX` | `/(?:\/folders\/\|\/d\/\|[?&]id=)([-\w]+)/` | Extracts a Drive file/folder ID from a sharing URL; shared by `parseDriveId()` and `looksLikeDriveUrl()` |
 | `XLSX_EXPORT_FILENAME_PREFIX` | `'Export '` | Filename prefix for XLSX exports, e.g. `Export 11.08.2026.xlsx` |
 | `XLSX_EXPORT_SECONDS_PER_ROW` | `0.2` | Seconds per row used to estimate XLSX export duration in the confirmation dialog |
