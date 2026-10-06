@@ -1,5 +1,5 @@
 <script>
-  // Images and files: IndexedDB image cache, fetch queue, file badges, Drive-ID parsing, lightbox.
+  // Images and files: IndexedDB image cache (lazy per-ID reads, pruning, crash guard), fetch queue, file badges, Drive-ID parsing, lightbox.
   // One of several WebEditor.*.js.html fragments sharing a single global scope; include order is set in WebEditor.html.
 
   const imageCache = {};     // fileId → { type:'image', dataUrl } | { type:'pdf', viewUrl } | null
@@ -7,18 +7,31 @@
   const pendingImages = new Set(); // fileIds currently being fetched to avoid duplicate requests
 
   let dbPromise = null;              // Promise<IDBDatabase> — opened once in init(), reused thereafter
+  let imageCacheReady = Promise.resolve(); // resolves once a crash-triggered cache wipe (if any) has finished
+
+  // localStorage flag set while a dialog session is still loading its images. A renderer crash
+  // ("Aw, Snap") never fires pagehide, so a flag still set at the next launch means the previous
+  // session died mid-load and its cache is suspect.
+  const IMAGE_LOAD_FLAG_KEY = 'pdb_images_loading';
 
   /**
    * Opens (or reuses) the IndexedDB database for the persistent image cache.
    * Called eagerly in init() so the DB is ready before onDataLoaded fires.
+   * v2 adds a `savedAt` index so pruneImageCache() can read keys and ages without loading the
+   * (large) image values.
    * @returns {Promise<IDBDatabase>}
    */
   function openImageDB() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
       try {
-        const req = indexedDB.open('pdb_images', 1);
-        req.onupgradeneeded = e => { e.target.result.createObjectStore('images'); };
+        const req = indexedDB.open('pdb_images', 2);
+        req.onupgradeneeded = e => {
+          const store = e.target.result.objectStoreNames.contains('images')
+            ? e.target.transaction.objectStore('images')
+            : e.target.result.createObjectStore('images');
+          if (!store.indexNames.contains('savedAt')) store.createIndex('savedAt', 'savedAt');
+        };
         req.onsuccess = e => resolve(e.target.result);
         req.onerror = () => reject(req.error);
       } catch (e) {
@@ -29,33 +42,138 @@
   }
 
   /**
-   * Reads all entries from IndexedDB, validates TTL, and pre-populates imageCache
-   * so renderList() can display cached images without queuing network requests.
-   * Expired or invalid entries are deleted in the same pass. Always resolves.
+   * Whether a stored cache entry is valid and younger than the TTL.
+   * @param {{savedAt: number, data: Object}|undefined} entry - Record read from the images store.
+   * @param {number} now - Current time in ms.
+   * @param {number} ttlMs - Maximum entry age in ms.
+   * @returns {boolean}
+   */
+  function isImageCacheEntryFresh(entry, now, ttlMs) {
+    return !!entry?.data && now - entry.savedAt <= ttlMs;
+  }
+
+  /**
+   * Picks the cache keys to delete: every expired entry, plus the oldest live
+   * entries beyond maxEntries.
+   * @param {Array<{key: string, savedAt: number}>} entries - All cached entries, any order.
+   * @param {number} now - Current time in ms.
+   * @param {number} ttlMs - Maximum entry age in ms.
+   * @param {number} maxEntries - Maximum number of live entries to keep.
+   * @returns {string[]} Keys to delete.
+   */
+  function selectImageCacheEvictions(entries, now, ttlMs, maxEntries) {
+    const sorted = [...entries].sort((a, b) => a.savedAt - b.savedAt);
+    const expired = sorted.filter(e => now - e.savedAt > ttlMs);
+    const live = sorted.filter(e => now - e.savedAt <= ttlMs);
+    const overflow = live.slice(0, Math.max(0, live.length - maxEntries));
+    return [...expired, ...overflow].map(e => e.key);
+  }
+
+  /**
+   * Deletes every entry from the IndexedDB image cache. Always resolves.
    * @returns {Promise<void>}
    */
-  async function loadCacheFromIndexedDB() {
+  async function clearImageCache() {
     try {
+      const db = await openImageDB();
+      await new Promise(resolve => {
+        const tx = db.transaction('images', 'readwrite');
+        tx.objectStore('images').clear();
+        tx.oncomplete = tx.onerror = tx.onabort = () => resolve();
+      });
+    } catch (e) {
+      // IndexedDB unavailable — nothing to clear
+    }
+  }
+
+  /**
+   * Detects a previous session that crashed while loading images (its flag was never
+   * released) and wipes the cache so the same data can't crash this launch too. Then
+   * raises the flag for this session. Called once from init().
+   * @returns {void}
+   */
+  function startImageCacheGuard() {
+    let crashed = false;
+    try {
+      crashed = localStorage.getItem(IMAGE_LOAD_FLAG_KEY) === '1';
+      localStorage.setItem(IMAGE_LOAD_FLAG_KEY, '1');
+    } catch (e) {
+      // storage blocked — no crash detection
+    }
+    window.addEventListener('pagehide', releaseImageCacheGuard);
+    if (crashed) imageCacheReady = clearImageCache();
+  }
+
+  /**
+   * Clears the "session still loading images" flag. Idempotent.
+   * @returns {void}
+   */
+  function releaseImageCacheGuard() {
+    try {
+      localStorage.removeItem(IMAGE_LOAD_FLAG_KEY);
+    } catch (e) {
+      // storage blocked
+    }
+  }
+
+  /**
+   * Reads the given file IDs from IndexedDB and returns the fresh ones. Only the
+   * requested keys are read, so memory use tracks what the list shows rather than
+   * the size of the whole cache. Always resolves.
+   * @param {string[]} ids - Drive file IDs.
+   * @returns {Promise<Object<string, Object>>} fileId → cached result, hits only.
+   */
+  async function loadCachedImages(ids) {
+    const hits = {};
+    try {
+      await imageCacheReady;
       const db = await openImageDB();
       const ttlMs = schema.imageCacheTtlDays * 24 * 60 * 60 * 1000;
       const now = Date.now();
       await new Promise(resolve => {
-        const req = db.transaction('images', 'readwrite').objectStore('images').openCursor();
-        req.onsuccess = e => {
-          const cursor = e.target.result;
-          if (!cursor) { resolve(); return; }
-          const entry = cursor.value;
-          if (!entry?.data || now - entry.savedAt > ttlMs) {
-            cursor.delete();
-          } else {
-            imageCache[cursor.key] = entry.data;
-          }
-          cursor.continue();
-        };
-        req.onerror = () => resolve();
+        const tx = db.transaction('images');
+        const store = tx.objectStore('images');
+        ids.forEach(id => {
+          store.get(id).onsuccess = e => {
+            if (isImageCacheEntryFresh(e.target.result, now, ttlMs)) hits[id] = e.target.result.data;
+          };
+        });
+        tx.oncomplete = tx.onerror = tx.onabort = () => resolve();
       });
     } catch (e) {
-      // IndexedDB unavailable — silent fallback, images fetched from server
+      // IndexedDB unavailable — caller falls back to the server
+    }
+    return hits;
+  }
+
+  /**
+   * Deletes expired entries and the oldest ones beyond schema.imageCacheMaxEntries.
+   * Walks the savedAt index with a key cursor, so image values are never loaded.
+   * Fire-and-forget; always resolves.
+   * @returns {Promise<void>}
+   */
+  async function pruneImageCache() {
+    try {
+      await imageCacheReady;
+      const db = await openImageDB();
+      const entries = await new Promise(resolve => {
+        const out = [];
+        const req = db.transaction('images').objectStore('images').index('savedAt').openKeyCursor();
+        req.onsuccess = e => {
+          const cursor = e.target.result;
+          if (!cursor) { resolve(out); return; }
+          out.push({ key: cursor.primaryKey, savedAt: cursor.key });
+          cursor.continue();
+        };
+        req.onerror = () => resolve(out);
+      });
+      const ttlMs = schema.imageCacheTtlDays * 24 * 60 * 60 * 1000;
+      const doomed = selectImageCacheEvictions(entries, Date.now(), ttlMs, schema.imageCacheMaxEntries);
+      if (!doomed.length) return;
+      const store = db.transaction('images', 'readwrite').objectStore('images');
+      doomed.forEach(key => store.delete(key));
+    } catch (e) {
+      // IndexedDB unavailable — nothing to prune
     }
   }
 
@@ -95,12 +213,31 @@
   }
 
   /**
-   * Finds all img elements tagged with data-file-id (not yet loaded) and fires
-   * one google.script.run call per unique file ID. Results are stored in imageCache
-   * and the img src is updated when the response arrives. Uses pendingImages to
-   * prevent duplicate in-flight requests for the same file.
+   * Stores a result in imageCache and updates every not-yet-loaded img tagged
+   * with this file ID: sets its src, or swaps it for a PDF/folder/no-access badge.
+   * @param {string} fileId - Google Drive file ID.
+   * @param {Object|null} result - Cached or freshly fetched getImagesDataUrls result.
+   * @returns {void}
    */
-  function queueImageFetch() {
+  function applyImageResult(fileId, result) {
+    imageCache[fileId] = result;
+    document.querySelectorAll(`img[data-file-id="${fileId}"]`).forEach(el => {
+      el.removeAttribute('data-file-id');
+      if (result?.type === 'image') {
+        el.src = result.dataUrl;
+      } else if (result) {
+        el.parentNode.replaceChild(buildFileBadge(result.type, result.viewUrl), el);
+      }
+    });
+  }
+
+  /**
+   * Finds all img elements tagged with data-file-id (not yet loaded) and resolves
+   * each unique file ID from IndexedDB first, then from the server for the misses.
+   * Uses pendingImages to prevent duplicate in-flight requests for the same file.
+   * @returns {Promise<void>}
+   */
+  async function queueImageFetch() {
     const ids = [];
     document.querySelectorAll('img[data-file-id]').forEach(img => {
       const id = img.dataset.fileId;
@@ -108,7 +245,35 @@
       pendingImages.add(id);
       ids.push(id);
     });
-    if (!ids.length) return;
+    if (!ids.length) {
+      if (!pendingImages.size) releaseImageCacheGuard();
+      return;
+    }
+    const misses = [];
+    for (let i = 0; i < ids.length; i += schema.imageFetchBatchSize) {
+      const chunk = ids.slice(i, i + schema.imageFetchBatchSize);
+      const hits = await loadCachedImages(chunk);
+      chunk.forEach(fileId => {
+        if (fileId in hits) {
+          pendingImages.delete(fileId);
+          applyImageResult(fileId, hits[fileId]);
+        } else {
+          misses.push(fileId);
+        }
+      });
+    }
+    if (misses.length) fetchImagesFromServer(misses);
+    else if (!pendingImages.size) releaseImageCacheGuard();
+  }
+
+  /**
+   * Fetches the given file IDs from the server in batches through a worker pool,
+   * applies each result to the DOM and saves it to IndexedDB. Releases the crash
+   * guard once no fetch is pending.
+   * @param {string[]} ids - Drive file IDs missing from the cache.
+   * @returns {void}
+   */
+  function fetchImagesFromServer(ids) {
     const batchSize = schema.imageFetchBatchSize;
     const concurrency = schema.imageFetchConcurrency;
     let offset = 0;
@@ -122,21 +287,15 @@
           batch.forEach(fileId => {
             pendingImages.delete(fileId);
             const result = results[fileId] ?? null;
-            imageCache[fileId] = result;
+            applyImageResult(fileId, result);
             saveToIndexedDB(fileId, result);
-            document.querySelectorAll(`img[data-file-id="${fileId}"]`).forEach(el => {
-              el.removeAttribute('data-file-id');
-              if (result?.type === 'image') {
-                el.src = result.dataUrl;
-              } else if (result) {
-                el.parentNode.replaceChild(buildFileBadge(result.type, result.viewUrl), el);
-              }
-            });
           });
+          if (!pendingImages.size) releaseImageCacheGuard();
           fetchNext();
         })
         .withFailureHandler(() => {
           batch.forEach(fileId => pendingImages.delete(fileId));
+          if (!pendingImages.size) releaseImageCacheGuard();
           fetchNext();
         })
         .getImagesDataUrls(batch);

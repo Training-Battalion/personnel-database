@@ -159,6 +159,8 @@ const ROW_LOCK_TIMEOUT_MS = 10000;
 
 // Persistent IndexedDB image cache — how long an entry is kept before re-fetching from Drive.
 const IMAGE_CACHE_TTL_DAYS = 7;
+// Cap on cached entries; beyond it the oldest are deleted on each editor open, so the cache can't grow unbounded.
+const IMAGE_CACHE_MAX_ENTRIES = 1000;
 
 // Regex patterns shared between server-side phone normalization and export logic.
 const PHONE_REGEX_9DIGIT = /^\d{9}$/;

@@ -243,6 +243,7 @@
       return;
     }
 
+    startImageCacheGuard();
     openImageDB(); // start DB open in parallel with getSchemaAndData
     google.script.run
       .withSuccessHandler(onDataLoaded)
@@ -272,15 +273,14 @@
 
   /**
    * Success handler for the initial getSchemaAndData() call.
-   * Awaits the IndexedDB cache load so renderList() can display cached images
-   * immediately, then builds and shows the table.
+   * Builds and shows the table; queueImageFetch() fills thumbnails from the
+   * IndexedDB cache afterwards. Also prunes the cache in the background.
    * @param {{columns: Object[], rows: Object[]}} data
-   * @returns {Promise<void>}
    */
-  async function onDataLoaded(data) {
+  function onDataLoaded(data) {
     schema = data;
     schema.sourceColumnMismatches = {};
-    await loadCacheFromIndexedDB();
+    pruneImageCache();
     document.getElementById('loading').style.display = 'none';
     document.getElementById('btn-refresh').style.display = '';
     if (data.masterMode) {
