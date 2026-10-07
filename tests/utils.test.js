@@ -6,6 +6,7 @@ const { loadServer, plain } = require('./load.js');
 
 const {
   normalizeFullName,
+  normalizeRowFullName,
   normalizePhoneNumber,
   extractUnitName,
   columnLetterToIndex,
@@ -26,6 +27,7 @@ const {
   ['Config.js', 'Formatting.js', 'DriveHelpers.js', 'SchemaHelpers.js', 'Utils.js'],
   [
     'normalizeFullName',
+    'normalizeRowFullName',
     'normalizePhoneNumber',
     'extractUnitName',
     'columnLetterToIndex',
@@ -59,6 +61,19 @@ describe('normalizeFullName', () => {
   test('is idempotent', () => {
     const once = normalizeFullName(' іваненко   Іван ');
     assert.equal(normalizeFullName(once), once);
+  });
+});
+
+describe('normalizeRowFullName', () => {
+  const header = ['Позивний', 'ПІБ', 'Телефон'];
+  test('normalizes only the full-name cell and does not mutate the input', () => {
+    const row = ['Орел', 'шевченко Тарас', '0501234567'];
+    assert.deepEqual(plain(normalizeRowFullName(header, row)), ['Орел', 'ШЕВЧЕНКО Тарас', '0501234567']);
+    assert.equal(row[1], 'шевченко Тарас');
+  });
+  test('returns the row unchanged without a full-name column or when the row is short', () => {
+    assert.deepEqual(plain(normalizeRowFullName(['A', 'B'], ['x', 'y'])), ['x', 'y']);
+    assert.deepEqual(plain(normalizeRowFullName(header, ['Орел'])), ['Орел']);
   });
 });
 

@@ -5,15 +5,17 @@
  *
  * @param {string[]} values - Array of cell values, one per column.
  * @param {string|null} [spreadsheetId] - Remote spreadsheet ID, or null/omitted for local.
- * @returns {number} 1-based row index of the newly created row.
+ * The full-name cell is normalized (surname uppercased) before writing.
+ * @returns {{rowIndex: number, values: string[]}} 1-based row index of the new row, and the row as written.
  */
 function addRowWithData(values, spreadsheetId) {
   const { sheet } = getDatabaseSheet(spreadsheetId);
   const newRowIndex = sheet.getLastRow() + 1;
   const numCols = sheet.getLastColumn();
-  const padded = padRowToColumnCount(values, numCols);
+  const headerRow = stringifyRowValues(sheet.getRange(1, 1, 1, numCols).getValues()[0]);
+  const padded = padRowToColumnCount(normalizeRowFullName(headerRow, values), numCols);
   sheet.getRange(newRowIndex, 1, 1, numCols).setValues([padded]);
-  return newRowIndex;
+  return { rowIndex: newRowIndex, values: padded };
 }
 
 /**
@@ -24,17 +26,20 @@ function addRowWithData(values, spreadsheetId) {
  * script lock against the sheet's current row via mergeRowChanges(): cells the user did not
  * change keep any newer value from the sheet, and nothing is written if the same cell was
  * changed by someone else or the row was deleted/shifted. Without `baseline` it writes blindly.
+ * The full-name cell is normalized (surname uppercased) before writing.
  *
  * @param {number} rowIndex - 1-based spreadsheet row number to update.
- * @param {string[]} values - Array of cell values, one per column.
+ * @param {string[]} rawValues - Array of cell values, one per column.
  * @param {string|null} spreadsheetId - Remote spreadsheet ID, or null for local.
  * @param {string[]} [baseline] - Row values as loaded by the client, enabling the conflict check.
  * @returns {{ok: boolean, values: string[], moved?: boolean, conflicts?: Array<{colIndex: number, theirs: string, mine: string}>}}
  *   On success `values` is the row as written; on conflict it is the sheet's current row.
  *   Thrown errors propagate to the client failure handler.
  */
-function updateRow(rowIndex, values, spreadsheetId, baseline) {
+function updateRow(rowIndex, rawValues, spreadsheetId, baseline) {
   const { sheet } = getDatabaseSheet(spreadsheetId);
+  const headerRow = stringifyRowValues(sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), rawValues.length)).getValues()[0]);
+  const values = normalizeRowFullName(headerRow, rawValues);
   if (!baseline) {
     sheet.getRange(rowIndex, 1, 1, values.length).setValues([values]);
     return { ok: true, values };

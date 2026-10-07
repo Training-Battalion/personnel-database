@@ -35,6 +35,21 @@ function normalizeFullName(value) {
 }
 
 /**
+ * Returns a copy of a row with its full-name cell (the column whose header matches
+ * COL_FULL_NAME) passed through normalizeFullName(). Rows without such a column,
+ * or with a short row not reaching it, are returned unchanged.
+ * @param {string[]} headerRow - Column names (Database row 1).
+ * @param {string[]} values - Cell values, one per column.
+ * @returns {string[]}
+ */
+function normalizeRowFullName(headerRow, values) {
+  const idx = findColumnIndex(headerRow, COL_FULL_NAME);
+  const result = values.slice();
+  if (idx >= 0 && idx < result.length) result[idx] = normalizeFullName(result[idx]);
+  return result;
+}
+
+/**
  * Normalizes a Ukrainian phone number: adds a leading zero to a bare 9-digit
  * number, and strips the "38" country prefix from a 12-digit number. Anything
  * else is returned unchanged.
