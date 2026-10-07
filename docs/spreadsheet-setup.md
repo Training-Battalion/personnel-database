@@ -83,7 +83,7 @@ Images are stored as Google Drive sharing links. Supported URL formats:
 
 Images are fetched server-side (via `DriveApp`) and returned as base64 data URLs, so all users with access to the spreadsheet can view images regardless of their personal Drive session.
 
-Fetched images are persisted in an **IndexedDB** database (`pdb_images`) so subsequent dialog opens display all thumbnails immediately without any server round-trips. Entries expire after `IMAGE_CACHE_TTL_DAYS` (default 7 days). To force a full re-fetch, clear the site data for the script origin in browser DevTools.
+Fetched images are persisted in an **IndexedDB** database (`pdb_images`) so subsequent dialog opens display all thumbnails immediately without any server round-trips. Entries expire after `IMAGE_CACHE_TTL_DAYS` (default 7 days) and the cache is capped at `IMAGE_CACHE_MAX_ENTRIES`. If the editor crashed while loading images, the cache is wiped automatically on the next launch. To force a full re-fetch otherwise, clear the site data for the script origin in browser DevTools.
 
 If the linked file is a **PDF**, the cell shows a red "PDF" badge instead of a thumbnail; clicking it opens the file in Drive in a new tab. If the link points to a **Drive folder**, a blue "Folder" badge is shown instead. If the script owner does not have access to the linked file, a gray **"No access"** badge is shown.
 

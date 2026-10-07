@@ -122,6 +122,10 @@ const TABLE_ROW_SEP = '\n';
 
 // XLSX export settings
 const XLSX_EXPORT_FILENAME_PREFIX = 'Export '; // → "Export 11.08.2026.xlsx"
+// *-table types exported as one xlsx column per sub-column (so they can be
+// filtered) instead of the raw pipe/newline-encoded string. Sub-column names
+// come from the Handbook Table Columns table (HANDBOOK_TABLE_COLUMNS_RANGE).
+const XLSX_SPLIT_TABLE_TYPES = ['medical-table'];
 // Rough per-row time estimate for the confirm dialog. There's no per-row blob
 // fetch (unlike EXPORT_SECONDS_PER_DOC), so cost is dominated by one cached
 // sheet read plus, for image-type columns only, a lightweight per-row Drive
@@ -159,6 +163,8 @@ const ROW_LOCK_TIMEOUT_MS = 10000;
 
 // Persistent IndexedDB image cache — how long an entry is kept before re-fetching from Drive.
 const IMAGE_CACHE_TTL_DAYS = 7;
+// Cap on cached entries; beyond it the oldest are deleted on each editor open, so the cache can't grow unbounded.
+const IMAGE_CACHE_MAX_ENTRIES = 1000;
 
 // Regex patterns shared between server-side phone normalization and export logic.
 const PHONE_REGEX_9DIGIT = /^\d{9}$/;

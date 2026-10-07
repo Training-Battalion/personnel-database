@@ -398,8 +398,9 @@
         ? ssSelect.value || null
         : null;
       google.script.run
-        .withSuccessHandler(newRowIndex => {
-          editingRow.rowIndex = newRowIndex;
+        .withSuccessHandler(result => {
+          pendingValues = result.values;
+          editingRow.rowIndex = result.rowIndex;
           if (targetId) editingRow.spreadsheetId = targetId;
           onSaveSuccess();
         })

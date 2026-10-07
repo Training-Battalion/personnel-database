@@ -63,7 +63,7 @@ Exports run in automatic batches capped at `EXPORT_TIME_LIMIT_MS` (5 minutes) to
 The "Export XLSX" toolbar button exports the **selected** rows (checkbox column), restricted to the columns currently **visible** in the list view (toggle via "Columns ▾"), as a single `.xlsx` file:
 
 - Regular columns → cell value as-is
-- `*-table` columns → the raw pipe/newline-encoded storage string, unchanged
+- `*-table` columns → the raw pipe/newline-encoded storage string, unchanged — except types listed in `XLSX_SPLIT_TABLE_TYPES` (`medical-table`), which are split into one column per sub-column (`<column>: <sub-column>`, names from the Handbook Table Columns table) so they can be filtered; a table with several rows puts that sub-column's values in one cell, one per line
 - `image` columns, and any other column whose value looks like a Drive sharing URL → a clickable `HYPERLINK()` formula pointing at the file/folder's Drive view URL (no image embedding, no blob fetch — link only)
 
 The file is named `Export DD.MM.YYYY.xlsx` (today's date) and saved to the same Drive folder as F-1/WC exports (`Handbook!A13`). Repeated exports on the same day are saved as separate files — Drive allows duplicate filenames, so no overwrite/suffix logic is applied.
