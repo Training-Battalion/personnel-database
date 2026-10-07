@@ -21,7 +21,7 @@ Placeholders with no match are left untouched. `_exportDoc()` checks elapsed tim
 
 ## XLSX export
 
-The "Export XLSX" toolbar button exports the checkbox selection, restricted to currently-visible columns, as **one** `.xlsx` (unlike one-Doc-per-row above). `runExportXlsx()` orders rows via `sortRowsBySourceOrder()` (as `applyFilters()` does) so output matches on-screen order. Image/PDF/folder cells become clickable `HYPERLINK()` formulas (no image embedding, no blob fetching); `*-table` cells are written verbatim in their pipe/newline storage format.
+The "Export XLSX" toolbar button exports the checkbox selection, restricted to currently-visible columns, as **one** `.xlsx` (unlike one-Doc-per-row above). `runExportXlsx()` orders rows via `sortRowsBySourceOrder()` (as `applyFilters()` does) so output matches on-screen order. Image/PDF/folder cells become clickable `HYPERLINK()` formulas (no image embedding, no blob fetching); `*-table` cells are written verbatim in their pipe/newline storage format, except `XLSX_SPLIT_TABLE_TYPES` (`medical-table`): `exportXLSX()` expands those into one output column per Handbook sub-column via `_splitTableCell()` (so output column index ≠ selected column index; link-cell addresses use the output index).
 
 Apps Script can't author `.xlsx` bytes and there's no build step to bundle a library, so `exportXLSX(rowEntries, visibleColumnIndices)` builds the grid in a temporary `SpreadsheetApp.create()`d sheet and converts it with `_fetchXlsxExportBlob()` — `UrlFetchApp` on `https://docs.google.com/spreadsheets/d/{id}/export?format=xlsx`, authorized with `ScriptApp.getOAuthToken()`. The temp spreadsheet is always trashed in a `finally` block (inner try/catch so cleanup can't mask the real error).
 

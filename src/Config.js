@@ -122,6 +122,10 @@ const TABLE_ROW_SEP = '\n';
 
 // XLSX export settings
 const XLSX_EXPORT_FILENAME_PREFIX = 'Export '; // → "Export 11.08.2026.xlsx"
+// *-table types exported as one xlsx column per sub-column (so they can be
+// filtered) instead of the raw pipe/newline-encoded string. Sub-column names
+// come from the Handbook Table Columns table (HANDBOOK_TABLE_COLUMNS_RANGE).
+const XLSX_SPLIT_TABLE_TYPES = ['medical-table'];
 // Rough per-row time estimate for the confirm dialog. There's no per-row blob
 // fetch (unlike EXPORT_SECONDS_PER_DOC), so cost is dominated by one cached
 // sheet read plus, for image-type columns only, a lightweight per-row Drive

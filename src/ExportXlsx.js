@@ -10,8 +10,11 @@
  * image-type column cells, and any other non-table column's cell whose raw
  * value looks like a Drive sharing URL (looksLikeDriveUrl()), are written as
  * =HYPERLINK("driveViewUrl","rawValue") formulas instead of plain text.
- * *-table column cells are always written verbatim — their pipe/newline-encoded
- * string is the desired xlsx cell content per spec, never reformatted.
+ * *-table column cells are written verbatim (their pipe/newline-encoded
+ * string), except types in XLSX_SPLIT_TABLE_TYPES (e.g. medical-table) that
+ * have sub-columns defined in the Handbook: those become one xlsx column per
+ * sub-column ("<column>: <sub-column>"), with a multi-row table's values for
+ * that sub-column joined by newlines in a single cell (see _splitTableCell()).
  *
  * The grid is written in two passes, deliberately never mixed into a single
  * Range.setFormulas() call: (1) the whole grid as plain VALUES via
@@ -61,7 +64,17 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
 
   const colIndices = visibleColumnIndices.filter((i) => Number.isInteger(i) && i >= 0 && i < localData.columns.length);
   if (!colIndices.length) throw new Error('No columns selected for export.');
-  const headerRow = colIndices.map((i) => localData.columns[i].name);
+  const tableColumnsMap = getTableColumnsMap();
+  /** @type {Array<string[]|null>} Sub-column names per selected column, or null if exported as a single column. */
+  const splitHeaders = colIndices.map((i) => {
+    const col = localData.columns[i];
+    const subs = XLSX_SPLIT_TABLE_TYPES.includes(col.type) ? tableColumnsMap[col.type] : null;
+    return subs && subs.length ? subs.map((sub) => sub.name) : null;
+  });
+  const headerRow = colIndices.flatMap((i, cellIdx) => {
+    const subNames = splitHeaders[cellIdx];
+    return subNames ? subNames.map((name) => `${localData.columns[i].name}: ${name}`) : [localData.columns[i].name];
+  });
 
   const driveInfoCache = new Map();
   /**
@@ -94,15 +107,21 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
     }
     const strValues = stringifyRowValues(rowValues);
     const rowNum = grid.length + 1; // 1-based sheet row this data row will occupy
-    const rowCells = colIndices.map((colIdx, cellIdx) => {
+    const rowCells = [];
+    colIndices.forEach((colIdx, cellIdx) => {
       const col = sheetData.columns[colIdx];
       const raw = strValues[colIdx] || '';
+      const subNames = splitHeaders[cellIdx];
+      if (subNames) {
+        rowCells.push(..._splitTableCell(raw, subNames.length));
+        return;
+      }
       const linkFormula = _buildXlsxLinkCell(col, raw, resolveDriveInfo);
       if (linkFormula !== null) {
-        const colNum = cellIdx + 1;
-        linkCells.push({ a1: _colIndexToA1Column(cellIdx) + rowNum, row: rowNum, col: colNum, formula: linkFormula });
+        const outIdx = rowCells.length;
+        linkCells.push({ a1: _colIndexToA1Column(outIdx) + rowNum, row: rowNum, col: outIdx + 1, formula: linkFormula });
       }
-      return raw; // always the plain value — link cells get overwritten with a formula in the second pass below
+      rowCells.push(raw); // always the plain value — link cells get overwritten with a formula in the second pass below
     });
     grid.push(rowCells);
   });
@@ -134,6 +153,22 @@ function exportXLSX(rowEntries, visibleColumnIndices) {
       }
     }
   }
+}
+
+/**
+ * Splits a *-table cell string into one value per sub-column, so each can sit
+ * in its own filterable xlsx column. A table with several rows yields, per
+ * sub-column, that column's values from every row joined by newlines (row
+ * order preserved). Missing fields become '' and fields beyond subCount are
+ * dropped.
+ *
+ * @param {string} raw - Pipe/newline-encoded table cell.
+ * @param {number} subCount - Number of sub-columns defined for the table type.
+ * @returns {string[]} Exactly subCount strings.
+ */
+function _splitTableCell(raw, subCount) {
+  const rows = _parseSubTable(raw);
+  return Array.from({ length: subCount }, (_, k) => rows.map((fields) => (fields[k] ?? '').trim()).join(TABLE_ROW_SEP));
 }
 
 /**

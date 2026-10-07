@@ -47,4 +47,5 @@ All tuneable constants live in `src/Config.js`. Back to the [README](../README.m
 | `IMAGE_CACHE_MAX_ENTRIES` | `1000` | Most image entries kept in IndexedDB; the oldest beyond this are deleted each time the editor opens |
 | `DRIVE_URL_REGEX` | `/(?:\/folders\/\|\/d\/\|[?&]id=)([-\w]+)/` | Extracts a Drive file/folder ID from a sharing URL; shared by `parseDriveId()` and `looksLikeDriveUrl()` |
 | `XLSX_EXPORT_FILENAME_PREFIX` | `'Export '` | Filename prefix for XLSX exports, e.g. `Export 11.08.2026.xlsx` |
+| `XLSX_SPLIT_TABLE_TYPES` | `['medical-table']` | `*-table` types exported to XLSX as one column per sub-column instead of the raw encoded string |
 | `XLSX_EXPORT_SECONDS_PER_ROW` | `0.2` | Seconds per row used to estimate XLSX export duration in the confirmation dialog |
